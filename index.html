@@ -15,6 +15,7 @@
         integrity="sha384-u69h9ebXeSjlg6q/rb1zKTRAGu/h8deCl0409xpS/QJctMKnc4M9Fzkm01VOQdeF"
         crossorigin="anonymous"></script>
 <script src="dados.js"></script>
+<script src="casos.js"></script>
 <style>
   :root {
     --bg: #0f172a;
@@ -337,6 +338,63 @@
     padding: 4px 0;
   }
   details > summary:hover { color: var(--text); }
+
+  .section-h {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 12px 0 6px;
+    font-weight: 600;
+  }
+
+  .caso-box {
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: #0f172a66;
+    border-left: 3px solid #334155;
+    border-radius: 0 4px 4px 0;
+  }
+  .caso-box .section-h { margin-top: 0; }
+  .caso-periodo {
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 6px;
+  }
+  .caso-resumo {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .caso-full {
+    margin-top: 8px;
+  }
+  .caso-full summary {
+    font-size: 11px;
+    color: #93c5fd;
+  }
+  .caso-full summary:hover { color: #bfdbfe; }
+  .caso-texto {
+    font-size: 11.5px;
+    line-height: 1.6;
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: var(--bg);
+    border-radius: 4px;
+    color: #cbd5e1;
+  }
+  .edge-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .edge-label code {
+    background: var(--bg3);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #fde047;
+  }
 </style>
 </head>
 <body>
@@ -742,6 +800,7 @@ function initCy() {
   });
 
   cy.on('tap', 'node', e => showDetails(e.target.data()));
+  cy.on('tap', 'edge', e => showEdgeDetails(e.target));
   cy.on('tap', (e) => {
     if (e.target === cy) {
       clearSelection();
@@ -750,7 +809,35 @@ function initCy() {
 }
 
 // =====================================================================
-// Painel de detalhes
+// Vocabulário de arestas — significado didático de cada tipo
+// =====================================================================
+const ARESTAS_DICIONARIO = {
+  'acusou':      { nome:'acusou',       cor:'#f59e0b',
+    sentido: 'Órgão/alegação → pessoa acusada. Indica atribuição de prática criminosa por uma parte (MP, delator, denunciante). NÃO é prova — é atribuição.' },
+  'delatou':     { nome:'delatou',      cor:'#f59e0b',
+    sentido: 'Pessoa delatora → alegação (ou pessoa acusada). Delação premiada é meio de obtenção de prova (Lei 12.850/2013, art. 4º §16): sentença NÃO pode condenar com base apenas em delação, requer corroboração externa.' },
+  'condenou':    { nome:'condenou',     cor:'#8b5cf6',
+    sentido: 'Decisão judicial → pessoa condenada. Nó com status="ativo" indica condenação vigente; "anulado" indica que uma instância superior reformou a decisão (não necessariamente por mérito).' },
+  'anulou':      { nome:'anulou',       cor:'#ef4444',
+    sentido: 'Decisão superior → decisão/prova anulada. ATENÇÃO: anulação pode ser por INCOMPETÊNCIA do juízo, por SUSPEIÇÃO, por NULIDADE DE PROVA, ou por MÉRITO. Cada fundamento tem efeito jurídico diferente. Anulação NÃO é absolvição.' },
+  'contradiz':   { nome:'contradiz',    cor:'#ef4444',
+    sentido: 'Dois nós com versões conflitantes sobre o mesmo fato. Pode ser: duas versões de um mesmo delator, uma alegação e sua retratação, duas narrativas midiáticas que enquadram os mesmos fatos de forma oposta.' },
+  'baseia-se-em':{ nome:'baseia-se-em', cor:'#64748b',
+    sentido: 'Decisão ou narrativa → fato/alegação em que se apoia. Permite rastrear: "sobre que esta sentença foi construída?"' },
+  'enquadra':    { nome:'enquadra',     cor:'#ec4899',
+    sentido: 'Narrativa → fato/contexto que ela interpreta. Mostra como uma mesma base factual pode ser enquadrada de formas diferentes por fontes distintas.' },
+  'cronologico': { nome:'cronológico',  cor:'#475569',
+    sentido: 'Sequência temporal entre eventos. Útil para rastrear timing (ex: PT abandonou proteção a Cunha na manhã → Cunha acolheu impeachment à tarde).' },
+  'defende':     { nome:'defende',      cor:'#10b981',
+    sentido: 'Decisão → pessoa favorecida pela decisão. Ex: absolvição, trancamento, HC concedido, voto dissidente que absolveria.' },
+  'envolve':     { nome:'envolve',      cor:'#64748b',
+    sentido: 'Relação genérica (participação, cargo, pertencimento). Ex: Pessoa → Empresa onde trabalhava.' },
+  'retratou':    { nome:'retratou',     cor:'#f59e0b',
+    sentido: 'Pessoa delatora → retratação posterior. Indica que a alegação inicial foi posteriormente desdita pelo próprio delator.' },
+};
+
+// =====================================================================
+// Painel de detalhes — NÓ
 // =====================================================================
 function showDetails(d) {
   const statusLabel = {
@@ -762,17 +849,40 @@ function showDetails(d) {
     `<a href="${f.url}" target="_blank" rel="noopener">${f.titulo || f.url}</a>`
   ).join('');
 
-  // Nós relacionados
-  const connected = cy.getElementById(d.id).neighborhood('node');
-  const related = connected.map(n => {
-    const nd = n.data();
-    return `<div class="related-item" data-id="${nd.id}">
-      <span class="color-dot" style="background:${COR_TIPO[nd.tipo]}"></span>
-      <span>${nd.label}</span>
+  // Nós relacionados — mostra o TIPO da relação
+  const centroEl = cy.getElementById(d.id);
+  const vizinhanca = centroEl.connectedEdges();
+  const relsHtml = vizinhanca.map(edge => {
+    const ed = edge.data();
+    const outroId = ed.source === d.id ? ed.target : ed.source;
+    const direcao = ed.source === d.id ? '→' : '←';
+    const outro = cy.getElementById(outroId).data();
+    if (!outro.id) return '';
+    const vocab = ARESTAS_DICIONARIO[ed.tipo] || {nome: ed.tipo, cor:'#64748b'};
+    return `<div class="related-item" data-id="${outroId}">
+      <span class="color-dot" style="background:${COR_TIPO[outro.tipo]}"></span>
+      <span style="color:${vocab.cor};font-size:10px;font-family:monospace">${direcao} ${vocab.nome}</span>
+      <span>${outro.label}</span>
     </div>`;
-  }).join('');
+  }).filter(Boolean).join('');
 
   const dataFmt = d.data ? formatDate(d.data) : '';
+
+  // Sobre este caso (texto do CASOS)
+  let sobreCaso = '';
+  const caso = window.CASOS && CASOS[d.caso];
+  if (caso) {
+    sobreCaso = `
+      <div class="caso-box">
+        <h3 class="section-h">Sobre este caso: ${caso.titulo}</h3>
+        <div class="caso-periodo">${caso.periodo}</div>
+        <div class="caso-resumo">${caso.resumo}</div>
+        <details class="caso-full">
+          <summary>Ler contexto completo</summary>
+          <div class="caso-texto">${caso.texto.replace(/\n\n/g,'<br><br>')}</div>
+        </details>
+      </div>`;
+  }
 
   document.getElementById('detail-panel').innerHTML = `
     <span class="meta" style="background:${COR_TIPO[d.tipo]}22;color:${COR_TIPO[d.tipo]}">${d.tipo}</span>
@@ -780,21 +890,79 @@ function showDetails(d) {
     <h2>${d.titulo || d.label}</h2>
     ${dataFmt ? `<div class="date">${dataFmt}</div>` : ''}
     <div class="desc">${d.descricao || ''}</div>
-    ${fontes ? `<div class="sources"><h3 style="font-size:11px;text-transform:uppercase;color:var(--muted);margin:12px 0 4px;letter-spacing:.08em">Fontes</h3>${fontes}</div>` : ''}
-    ${related ? `<div class="related"><h3 style="font-size:11px;text-transform:uppercase;color:var(--muted);margin:0 0 6px;letter-spacing:.08em">Conectados</h3>${related}</div>` : ''}
+    ${fontes ? `<div class="sources"><h3 class="section-h">Fontes</h3>${fontes}</div>` : ''}
+    ${sobreCaso}
+    ${relsHtml ? `<div class="related"><h3 class="section-h">Relações (${vizinhanca.length})</h3>${relsHtml}</div>` : ''}
   `;
 
-  // Highlight no grafo
+  // Highlight
   cy.elements().removeClass('highlighted faded');
-  const neighborhood = cy.getElementById(d.id).closedNeighborhood();
+  const neighborhood = centroEl.closedNeighborhood();
   cy.elements().not(neighborhood).addClass('faded');
   neighborhood.addClass('highlighted');
 
-  // Clique em "conectados"
+  // Clique em "relações"
   document.querySelectorAll('.related-item').forEach(el => {
     el.addEventListener('click', () => {
       const target = cy.getElementById(el.dataset.id);
-      if (target) {
+      if (target && target.length) {
+        showDetails(target.data());
+        cy.animate({center: {eles: target}, zoom: 1.2}, {duration: 400});
+      }
+    });
+  });
+}
+
+// =====================================================================
+// Painel de detalhes — ARESTA
+// =====================================================================
+function showEdgeDetails(edgeEl) {
+  const d = edgeEl.data();
+  const srcData = cy.getElementById(d.source).data();
+  const tgtData = cy.getElementById(d.target).data();
+  const vocab = ARESTAS_DICIONARIO[d.tipo] || { nome: d.tipo, cor:'#64748b', sentido: 'Relação sem definição no vocabulário controlado.' };
+
+  const labelExtra = d.label ? `<div class="edge-label"><code>${d.label}</code></div>` : '';
+  const descricaoExtra = d.descricao ? `<div class="desc">${d.descricao}</div>` : '';
+
+  document.getElementById('detail-panel').innerHTML = `
+    <span class="meta" style="background:${vocab.cor}22;color:${vocab.cor}">ARESTA · ${vocab.nome}</span>
+    <h2 style="font-size:14px;line-height:1.4">
+      <span style="color:${COR_TIPO[srcData.tipo]}">${srcData.label}</span>
+      <span style="color:${vocab.cor};font-family:monospace;font-size:12px">— ${vocab.nome} →</span>
+      <span style="color:${COR_TIPO[tgtData.tipo]}">${tgtData.label}</span>
+    </h2>
+    ${labelExtra}
+    <div class="caso-box" style="margin-top:12px">
+      <h3 class="section-h">Significado didático</h3>
+      <div class="caso-resumo">${vocab.sentido}</div>
+    </div>
+    ${descricaoExtra}
+    <div class="related">
+      <h3 class="section-h">Endpoints</h3>
+      <div class="related-item" data-id="${d.source}">
+        <span class="color-dot" style="background:${COR_TIPO[srcData.tipo]}"></span>
+        <span style="font-size:10px;font-family:monospace;color:var(--muted)">origem</span>
+        <span>${srcData.label}</span>
+      </div>
+      <div class="related-item" data-id="${d.target}">
+        <span class="color-dot" style="background:${COR_TIPO[tgtData.tipo]}"></span>
+        <span style="font-size:10px;font-family:monospace;color:var(--muted)">destino</span>
+        <span>${tgtData.label}</span>
+      </div>
+    </div>
+  `;
+
+  // Highlight só a aresta + endpoints
+  cy.elements().removeClass('highlighted faded');
+  const foco = edgeEl.union(edgeEl.connectedNodes());
+  cy.elements().not(foco).addClass('faded');
+  foco.addClass('highlighted');
+
+  document.querySelectorAll('.related-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const target = cy.getElementById(el.dataset.id);
+      if (target && target.length) {
         showDetails(target.data());
         cy.animate({center: {eles: target}, zoom: 1.2}, {duration: 400});
       }
@@ -1368,20 +1536,26 @@ function populateAlvoFilters() {
   const container = document.getElementById('alvo-filters');
   const labelMap = {
     'lula':   'Lula (PT)',
+    'dirceu': 'José Dirceu (PT)',
     'flavio': 'Flávio Bolsonaro (PL)',
     'jair':   'Jair Bolsonaro (PL)',
     'cunha':  'Eduardo Cunha (ex-MDB)',
+    'temer':  'Michel Temer (MDB)',
+    'aecio':  'Aécio Neves (PSDB)',
     'geral':  'Transversal (sem alvo)',
   };
   const corMap = {
     'lula':   '#dc2626',
+    'dirceu': '#be123c',
     'flavio': '#eab308',
     'jair':   '#eab308',
     'cunha':  '#06b6d4',
+    'temer':  '#0891b2',
+    'aecio':  '#a78bfa',
     'geral':  '#64748b',
   };
   // Ordem fixa (não alfabética)
-  const ordem = ['lula','flavio','jair','cunha','geral'];
+  const ordem = ['lula','dirceu','jair','flavio','temer','cunha','aecio','geral'];
   const ordenados = [...alvos.entries()].sort((a,b) => ordem.indexOf(a[0]) - ordem.indexOf(b[0]));
   for (const [a, n] of ordenados) {
     filtros.alvo.add(a);

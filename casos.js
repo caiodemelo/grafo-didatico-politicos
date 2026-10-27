@@ -80,6 +80,32 @@ A série totalizou 111 reportagens em consórcio ao longo de 7 meses (parceria c
 Delgatti foi condenado em 21/08/2023 pela Justiça Federal do DF a 20 anos e 1 mês de prisão — pelo MÉTODO (invasão de dispositivos), não pelo CONTEÚDO publicado. A autenticidade das mensagens nunca foi formalmente reconhecida pelo Judiciário, mas o conteúdo circunstanciou a decisão de suspeição de Moro em 2021.`
   },
 
+  'master': {
+    titulo: 'Caso Master / Dark Horse',
+    periodo: '2025–2026',
+    resumo: 'Investigação PF sobre negociação alegada entre Flávio Bolsonaro e Daniel Vorcaro (Banco Master) de R$ 134 mi, com parte do dinheiro destinado ao filme biográfico "Dark Horse" sobre Jair Bolsonaro.',
+    texto: `A Operação Compliance Zero (nov/2025) atingiu o Banco Master de Daniel Vorcaro: R$ 27,7 bi bloqueados, 21 presos, 116 mandados. A partir desse eixo, o Intercept Brasil publicou em 13/05/2026 um áudio em que Flávio Bolsonaro cobra Vorcaro por R$ 134 milhões.
+
+Em 23/10/2026, o Intercept divulgou documento da PF indicando que Vorcaro teria se comprometido a transferir US$ 24 milhões para a produção do filme "Dark Horse" — biopic sobre Jair Bolsonaro, com Jim Caviezel, roteiro de Mário Frias e direção de Cyrus Nowrasteh. Transferências entre fev-mai/2025 somaram 6 operações / US$ 10,6 mi (~R$ 61 mi). Parte do dinheiro enviado aos EUA veio de empresa de Fabiano Zettel, ligada à fraude do Banco Master.
+
+Mensagem WhatsApp de Flávio em 16/11/2025: "Irmão, sou e serei sempre com você, não há meia conversa entre nós". Inicialmente, Flávio respondeu ao Intercept "é mentira"; depois da publicação, admitiu em vídeo nas redes que buscou investidores para o filme.
+
+A investigação PF está em curso no STF, sob relatoria do min. André Mendonça. Investiga também se emendas parlamentares e projetos de Flávio beneficiaram o Banco Master. Nenhuma denúncia formal foi oferecida até out/2026.`
+  },
+
+  'bets': {
+    titulo: 'Blaze / Willer Tomaz (apostas)',
+    periodo: '2025–2026',
+    resumo: 'Investigação sobre lavagem de dinheiro via plataforma de apostas Blaze. Advogado Willer Tomaz movimentou R$ 6,6 bi em apostas; Flávio Bolsonaro apontado como "usuário master" de conta aberta pelo advogado.',
+    texto: `Willer Tomaz de Souza (advogado) movimentou R$ 6,6 bilhões em 53.310 apostas na plataforma Blaze entre 2025-2026, com depósitos de R$ 325 milhões. Documentos da Secretaria de Prêmios e Apostas registram R$ 5 bi em transações.
+
+Flávio Bolsonaro apontado como "usuário master" de conta aberta pelo advogado. Vínculo entre eles desde ao menos 2019: viagens internacionais em jatos executivos, endereços comerciais compartilhados, disputa pela mansão de Angra dos Reis (acusação do jogador Richarlison em 2026). Tomaz também investigado desde ago/2025 na Operação Sem Desconto (desvios do INSS).
+
+Em 07/08/2026, a PF descobriu uma sala oculta com máquina de contar cédulas em hangar de aviação de Tomaz no aeroporto de Brasília, atrás de porta metálica blindada escondida por parede de madeira.
+
+Em 26/10/2026 (dia após o 2º turno das eleições), Alexandre de Moraes determinou a apreensão dos passaportes (brasileiro e diplomático) de Flávio, proibição de deixar o país e proibição de contato com Tomaz. Relator do inquérito no STF: Moraes.`
+  },
+
   'rachadinhas': {
     titulo: 'Rachadinhas / Caso Queiroz (Flávio Bolsonaro)',
     periodo: '2007–2025',

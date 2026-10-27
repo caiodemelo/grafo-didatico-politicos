@@ -14,6 +14,15 @@
 <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"
         integrity="sha384-u69h9ebXeSjlg6q/rb1zKTRAGu/h8deCl0409xpS/QJctMKnc4M9Fzkm01VOQdeF"
         crossorigin="anonymous"></script>
+<script src="https://unpkg.com/layout-base@2.0.1/layout-base.js"
+        integrity="sha384-5E2lB9AIGE6LRCnOOSTnZRlYZFZ01iMeN2fw97Z1r4Z/kXALxKw2AC+ZzQqoeDsG"
+        crossorigin="anonymous"></script>
+<script src="https://unpkg.com/cose-base@2.2.0/cose-base.js"
+        integrity="sha384-RswRBkrMsPUYpJLbZ1CVA08zbNzAkykE2oGJTujBwfjWNdfxv2WVjLJNqv1LhAOp"
+        crossorigin="anonymous"></script>
+<script src="https://unpkg.com/cytoscape-fcose@2.2.0/cytoscape-fcose.js"
+        integrity="sha384-uk5Wbjq1+KqUdHO30w7N7GrEGdzBhaJeW9o/ANF6v9+yx3M/cBmoX51C000JNCUf"
+        crossorigin="anonymous"></script>
 <script src="dados.js"></script>
 <script src="casos.js"></script>
 <style>
@@ -175,6 +184,89 @@
     font-size: 11px;
   }
   #help-modal .ex .desc { color: var(--muted); font-size: 11px; }
+
+  .onboard-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .onboard-modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    max-width: 680px; width: 100%;
+    max-height: 85vh; overflow-y: auto;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .onboard-modal h2 {
+    margin: 0 0 6px; font-size: 20px;
+    color: var(--text);
+  }
+  .onboard-modal h3 {
+    margin: 18px 0 10px; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); font-weight: 600;
+  }
+  .onboard-sub {
+    color: var(--muted); font-size: 13px;
+    line-height: 1.5; margin: 0 0 10px;
+  }
+  .onboard-sub b { color: #93c5fd; }
+  .onboard-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 640px) {
+    .onboard-cards { grid-template-columns: 1fr; }
+  }
+  .onboard-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 3px solid #3b82f6;
+    border-radius: 6px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .onboard-card:hover {
+    background: var(--border);
+    border-left-color: #fde047;
+  }
+  .onboard-card b {
+    display: block;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .onboard-card span {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .onboard-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 18px; padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--muted);
+  }
+  .onboard-footer label { cursor: pointer; }
+
+  #share-btn-wrap {
+    position: relative;
+  }
+  .toast-copiado {
+    position: absolute; top: 100%; right: 0; margin-top: 4px;
+    background: #065f46; color: #a7f3d0;
+    padding: 4px 10px; border-radius: 4px;
+    font-size: 11px; white-space: nowrap;
+    opacity: 0; transition: opacity .3s;
+    pointer-events: none;
+  }
+  .toast-copiado.show { opacity: 1; }
   #help-modal h3 {
     font-size: 11px; text-transform: uppercase;
     letter-spacing: 0.08em; color: var(--muted);
@@ -276,10 +368,32 @@
   }
   #detail-panel .sources a {
     color: #93c5fd; text-decoration: none;
-    display: block; margin: 4px 0;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+    margin: 4px 0;
+    overflow: hidden;
   }
-  #detail-panel .sources a:hover { text-decoration: underline; }
+  #detail-panel .sources a:hover .fonte-titulo { text-decoration: underline; }
+  #detail-panel .sources .fonte-titulo {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+  }
+  .fonte-badge {
+    display: inline-block;
+    padding: 1px 5px;
+    border: 1px solid;
+    border-radius: 3px;
+    font-size: 9px;
+    font-family: monospace;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
+  /* Legenda de viés na seção "Como ler" */
+  .vies-legenda {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+    font-size: 10px; margin: 6px 0;
+  }
+  .vies-legenda > div { display: flex; align-items: center; gap: 4px; }
   #detail-panel .related {
     margin-top: 16px; padding-top: 12px;
     border-top: 1px solid var(--border);
@@ -448,6 +562,7 @@
       <button class="mode-btn" data-mode="fatos">Só fatos</button>
       <button class="mode-btn" data-mode="judicial">Só judicial</button>
       <button class="mode-btn" data-mode="narrativas">Só narrativas</button>
+      <button class="mode-btn" id="comparar-btn" title="Compare 2 pessoas lado a lado">⇄ Comparar</button>
     </div>
     <div id="search-wrap">
       <input id="search" type="text" placeholder="Pergunte: caminho da corrupção de Lula / anulações de Jair / quem delatou Cunha / conexão Flávio-Jair..." autocomplete="off" />
@@ -456,7 +571,12 @@
     <div class="spacer"></div>
     <div id="stats"></div>
     <button class="action-btn" id="reset-all-btn" title="Resetar tudo: filtros, busca, modo, seleção" style="display:none">↺ Resetar</button>
+    <div id="share-btn-wrap">
+      <button class="action-btn" id="share-btn" title="Copiar URL com estado atual">⎘ Compartilhar</button>
+      <span class="toast-copiado" id="share-toast">URL copiada!</span>
+    </div>
     <button class="action-btn" id="help-btn" title="Exemplos de busca">?</button>
+    <button class="action-btn" id="layout-btn" title="Alternar layout (clusters/hierárquico)">⚄ Layout</button>
     <button class="action-btn" id="export-btn">Exportar JSON</button>
     <button class="action-btn" id="fit-btn">Ajustar</button>
   </div>
@@ -540,6 +660,21 @@
         <p style="margin:6px 0"><b style="color:var(--alegacao)">Alegação</b> — delação/denúncia; afirmação de uma parte.</p>
         <p style="margin:6px 0"><b style="color:var(--contexto)">Contexto</b> — fato de pano de fundo.</p>
         <p style="margin:6px 0"><b style="color:var(--narrativa)">Narrativa</b> — enquadramento publicado, nomeado por fonte.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Viés editorial das fontes</h3>
+      <div style="font-size:11px;color:var(--muted);line-height:1.4">
+        Toda URL recebe uma etiqueta pela linha editorial pública do veículo — não é juízo sobre o fato.
+      </div>
+      <div class="vies-legenda">
+        <div><span class="fonte-badge" style="background:#60a5fa22;color:#60a5fa;border-color:#60a5fa66">OFICIAL</span></div>
+        <div><span class="fonte-badge" style="background:#a78bfa22;color:#a78bfa;border-color:#a78bfa66">JURÍDICO</span></div>
+        <div><span class="fonte-badge" style="background:#94a3b822;color:#94a3b8;border-color:#94a3b866">CENTRO</span></div>
+        <div><span class="fonte-badge" style="background:#ec489922;color:#ec4899;border-color:#ec489966">ESQUERDA</span></div>
+        <div><span class="fonte-badge" style="background:#f9731622;color:#f97316;border-color:#f9731666">DIREITA</span></div>
+        <div><span class="fonte-badge" style="background:#2dd4bf22;color:#2dd4bf;border-color:#2dd4bf66">INTL</span></div>
       </div>
     </div>
 
@@ -829,14 +964,7 @@ function initCy() {
         style: { 'width': 3, 'opacity': 1 }
       },
     ],
-    layout: {
-      name: 'dagre',
-      rankDir: 'LR',
-      nodeSep: 50,
-      rankSep: 120,
-      edgeSep: 10,
-      padding: 40,
-    },
+    layout: ((localStorage.getItem('layout-preferido') || 'fcose') === 'dagre') ? construirLayoutDagre() : construirLayoutFcose(),
     wheelSensitivity: 0.2,
     minZoom: 0.15,
     maxZoom: 3,
@@ -849,6 +977,97 @@ function initCy() {
       clearSelection();
     }
   });
+}
+
+// =====================================================================
+// Classificação editorial de fontes
+// Baseada em levantamento de linha editorial pública, não em juízo de valor
+// =====================================================================
+const FONTES_VIES = {
+  // Oficial / institucional
+  'stf.jus.br':             { tag:'OFICIAL', cor:'#60a5fa', desc:'Portal do STF' },
+  'tse.jus.br':             { tag:'OFICIAL', cor:'#60a5fa', desc:'Portal do TSE' },
+  'trf2.jus.br':            { tag:'OFICIAL', cor:'#60a5fa', desc:'TRF-2 (RJ)' },
+  'trf4.jus.br':            { tag:'OFICIAL', cor:'#60a5fa', desc:'TRF-4 (sul)' },
+  'tre-rj.jus.br':          { tag:'OFICIAL', cor:'#60a5fa', desc:'TRE-RJ' },
+  'camara.leg.br':          { tag:'OFICIAL', cor:'#60a5fa', desc:'Câmara dos Deputados' },
+  'senado.leg.br':          { tag:'OFICIAL', cor:'#60a5fa', desc:'Senado Federal' },
+  'mpf.mp.br':              { tag:'OFICIAL', cor:'#60a5fa', desc:'MPF' },
+  'mppr.mp.br':             { tag:'OFICIAL', cor:'#60a5fa', desc:'MP-PR' },
+  'tjdft.jus.br':           { tag:'OFICIAL', cor:'#60a5fa', desc:'TJ-DFT' },
+  'agenciabrasil.ebc.com.br':{tag:'OFICIAL', cor:'#60a5fa', desc:'Agência Brasil (EBC pública)' },
+
+  // Jurídico-técnico
+  'conjur.com.br':          { tag:'JURÍDICO', cor:'#a78bfa', desc:'Consultor Jurídico — análise técnica' },
+  'migalhas.com.br':        { tag:'JURÍDICO', cor:'#a78bfa', desc:'Migalhas — jurídico' },
+  'jota.info':              { tag:'JURÍDICO', cor:'#a78bfa', desc:'JOTA — jurídico-político' },
+
+  // Centro
+  'folha.uol.com.br':       { tag:'CENTRO', cor:'#94a3b8', desc:'Folha de S.Paulo' },
+  'estadao.com.br':         { tag:'CENTRO', cor:'#94a3b8', desc:'O Estado de S.Paulo' },
+  'globo.com':              { tag:'CENTRO', cor:'#94a3b8', desc:'O Globo' },
+  'cnnbrasil.com.br':       { tag:'CENTRO', cor:'#94a3b8', desc:'CNN Brasil' },
+  'g1.globo.com':           { tag:'CENTRO', cor:'#94a3b8', desc:'G1' },
+  'bbc.com':                { tag:'CENTRO', cor:'#94a3b8', desc:'BBC Brasil' },
+  'poder360.com.br':        { tag:'CENTRO', cor:'#94a3b8', desc:'Poder360' },
+  'metropoles.com':         { tag:'CENTRO', cor:'#94a3b8', desc:'Metrópoles' },
+  'exame.com':              { tag:'CENTRO', cor:'#94a3b8', desc:'Exame' },
+  'correiobraziliense.com.br':{ tag:'CENTRO', cor:'#94a3b8', desc:'Correio Braziliense' },
+  'em.com.br':              { tag:'CENTRO', cor:'#94a3b8', desc:'Estado de Minas' },
+  'nexojornal.com.br':      { tag:'CENTRO', cor:'#94a3b8', desc:'Nexo' },
+  'aosfatos.org':           { tag:'CENTRO', cor:'#94a3b8', desc:'Aos Fatos — checagem' },
+  'agencialupa.org':        { tag:'CENTRO', cor:'#94a3b8', desc:'Agência Lupa — checagem' },
+
+  // Esquerda / crítica à Lava Jato
+  'intercept.com':          { tag:'ESQUERDA', cor:'#ec4899', desc:'The Intercept Brasil' },
+  'theintercept.com':       { tag:'ESQUERDA', cor:'#ec4899', desc:'The Intercept' },
+  'cartacapital.com.br':    { tag:'ESQUERDA', cor:'#ec4899', desc:'CartaCapital' },
+  'brasildefato.com.br':    { tag:'ESQUERDA', cor:'#ec4899', desc:'Brasil de Fato' },
+  'brasil247.com':          { tag:'ESQUERDA', cor:'#ec4899', desc:'Brasil 247' },
+  'apublica.org':           { tag:'ESQUERDA', cor:'#ec4899', desc:'Agência Pública' },
+  'iclnoticias.com.br':     { tag:'ESQUERDA', cor:'#ec4899', desc:'ICL Notícias' },
+  'jornalggn.com.br':       { tag:'ESQUERDA', cor:'#ec4899', desc:'Jornal GGN' },
+  'revistaforum.com.br':    { tag:'ESQUERDA', cor:'#ec4899', desc:'Revista Fórum' },
+  'cut.org.br':             { tag:'ESQUERDA', cor:'#ec4899', desc:'CUT' },
+  'pt.org.br':              { tag:'ESQUERDA', cor:'#ec4899', desc:'PT' },
+  'pcdob.org.br':           { tag:'ESQUERDA', cor:'#ec4899', desc:'PCdoB' },
+  'fpabramo.org.br':        { tag:'ESQUERDA', cor:'#ec4899', desc:'Fundação Perseu Abramo (PT)' },
+  'sul21.com.br':           { tag:'ESQUERDA', cor:'#ec4899', desc:'Sul21' },
+  'diariocarioca.com':      { tag:'ESQUERDA', cor:'#ec4899', desc:'Diário Carioca' },
+
+  // Direita / crítica ao STF/Lava Jato pós-anulações
+  'oantagonista.com.br':    { tag:'DIREITA',  cor:'#f97316', desc:'O Antagonista' },
+  'crusoe.com.br':          { tag:'DIREITA',  cor:'#f97316', desc:'Crusoé' },
+  'veja.abril.com.br':      { tag:'DIREITA',  cor:'#f97316', desc:'Veja' },
+  'revistaoeste.com':       { tag:'DIREITA',  cor:'#f97316', desc:'Revista Oeste' },
+  'jovempan.com.br':        { tag:'DIREITA',  cor:'#f97316', desc:'Jovem Pan' },
+  'gazetadopovo.com.br':    { tag:'DIREITA',  cor:'#f97316', desc:'Gazeta do Povo' },
+
+  // Wikipedia / enciclopédico
+  'wikipedia.org':          { tag:'ENCICL.',  cor:'#64748b', desc:'Wikipedia' },
+
+  // Mídia internacional
+  'nytimes.com':            { tag:'INTL',     cor:'#2dd4bf', desc:'New York Times' },
+  'aljazeera.com':          { tag:'INTL',     cor:'#2dd4bf', desc:'Al Jazeera' },
+  'elpais.com':             { tag:'INTL',     cor:'#2dd4bf', desc:'El País' },
+  'publico.pt':             { tag:'INTL',     cor:'#2dd4bf', desc:'Público (PT)' },
+  'reuters.com':            { tag:'INTL',     cor:'#2dd4bf', desc:'Reuters' },
+  'ft.com':                 { tag:'INTL',     cor:'#2dd4bf', desc:'Financial Times' },
+};
+
+function classificarFonte(url) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, '');
+    // Match exato primeiro
+    if (FONTES_VIES[host]) return FONTES_VIES[host];
+    // Match por sufixo
+    for (const key of Object.keys(FONTES_VIES)) {
+      if (host.endsWith(key)) return FONTES_VIES[key];
+    }
+    return { tag:'?', cor:'#475569', desc:host };
+  } catch(e) { return null; }
 }
 
 // =====================================================================
@@ -888,9 +1107,11 @@ function showDetails(d) {
   }[d.status||'ativo'] || '';
   const statusClass = `status-${d.status||'ativo'}`;
 
-  const fontes = (d.fontes||[]).map(f =>
-    `<a href="${f.url}" target="_blank" rel="noopener">${f.titulo || f.url}</a>`
-  ).join('');
+  const fontes = (d.fontes||[]).map(f => {
+    const vies = classificarFonte(f.url);
+    const badge = vies ? `<span class="fonte-badge" style="background:${vies.cor}22;color:${vies.cor};border-color:${vies.cor}66" title="${vies.desc}">${vies.tag}</span>` : '';
+    return `<a href="${f.url}" target="_blank" rel="noopener">${badge}<span class="fonte-titulo">${f.titulo || f.url}</span></a>`;
+  }).join('');
 
   // Nós relacionados — mostra o TIPO da relação
   const centroEl = cy.getElementById(d.id);
@@ -1207,6 +1428,49 @@ const ALIASES = {
   'funaro':'p-funaro','lucio funaro':'p-funaro','lúcio funaro':'p-funaro',
   'teori':'p-teori','teori zavascki':'p-teori',
   'bonat':'p-bonat',
+  // Cabral + Garotinho
+  'cabral':'p-cabral','sergio cabral':'p-cabral','sérgio cabral':'p-cabral',
+  'ancelmo':'p-ancelmo','adriana ancelmo':'p-ancelmo',
+  'bretas':'p-bretas','marcelo bretas':'p-bretas',
+  'miranda':'p-miranda','carlos miranda':'p-miranda',
+  'garotinho':'p-garotinho','anthony garotinho':'p-garotinho',
+  'rosinha':'p-rosinha',
+  // Zambelli + Silveira
+  'zambelli':'p-zambelli','carla zambelli':'p-zambelli',
+  'silveira':'p-silveira','daniel silveira':'p-silveira',
+  'luan':'p-luan-araujo','luan araujo':'p-luan-araujo','luan araújo':'p-luan-araujo',
+  // Collor
+  'collor':'p-collor','fernando collor':'p-collor',
+  'pedro collor':'p-pedro-collor',
+  'pc farias':'p-pc-farias','paulo cesar farias':'p-pc-farias',
+  // MDB
+  'renan':'p-renan','renan calheiros':'p-renan',
+  'juca':'p-juca','jucá':'p-juca','romero juca':'p-juca','romero jucá':'p-juca',
+  'sergio machado':'p-sergio-machado','sérgio machado':'p-sergio-machado',
+  'geddel':'p-geddel','geddel vieira lima':'p-geddel',
+  'lucio vieira':'p-lucio-vieira','lúcio vieira':'p-lucio-vieira',
+  // Arruda
+  'arruda':'p-arruda','jose roberto arruda':'p-arruda','josé roberto arruda':'p-arruda',
+  'durval':'p-durval-barbosa','durval barbosa':'p-durval-barbosa',
+  // Richa
+  'richa':'p-richa','beto richa':'p-richa',
+  'pepe':'p-pepe-richa','pepe richa':'p-pepe-richa',
+  'deonilson':'p-deonilson','deonilson roldo':'p-deonilson',
+  // Trama golpista — adições pós-cutoff
+  'vorcaro':'p-vorcaro','daniel vorcaro':'p-vorcaro',
+  'willer':'p-willer','willer tomaz':'p-willer',
+  'joesley':'p-joesley','joesley batista':'p-joesley',
+  'janot':'p-janot','rodrigo janot':'p-janot',
+  'rocha loures':'p-rocha-loures','rodrigo rocha loures':'p-rocha-loures',
+  'coronel lima':'p-coronel-lima','joao baptista lima':'p-coronel-lima',
+  'braga netto':'p-braga-netto','walter braga netto':'p-braga-netto',
+  'torres':'p-torres','anderson torres':'p-torres',
+  // Barbosa, Rosa, Jefferson, Marcos Valério — Mensalão
+  'joaquim barbosa':'p-barbosa','barbosa':'p-barbosa',
+  'rosa':'p-rosa','rosa weber':'p-rosa',
+  'jefferson':'p-jefferson','roberto jefferson':'p-jefferson',
+  'marcos valerio':'p-marcos-valerio','marcos valério':'p-marcos-valerio','valerio':'p-marcos-valerio','valério':'p-marcos-valerio',
+  'delubio':'p-delubio','delubio soares':'p-delubio','delúbio soares':'p-delubio',
 };
 // Ordenado por tamanho decrescente para match "greedy" (nomes longos antes de curtos)
 const ALIAS_KEYS = Object.keys(ALIASES).sort((a,b) => b.length - a.length);
@@ -1881,6 +2145,328 @@ function wireFilters() {
     cy.animate({fit: {padding: 40}}, {duration: 400});
   });
   document.getElementById('reset-all-btn').addEventListener('click', resetAll);
+  document.getElementById('comparar-btn').addEventListener('click', abrirCompararModal);
+  document.getElementById('layout-btn').addEventListener('click', () => {
+    const atual = localStorage.getItem('layout-preferido') || 'fcose';
+    trocarLayout(atual === 'fcose' ? 'dagre' : 'fcose');
+  });
+  document.getElementById('share-btn').addEventListener('click', async () => {
+    sincronizarURL();
+    const url = window.location.href;
+    try {
+      await navigator.clipboard.writeText(url);
+      const toast = document.getElementById('share-toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    } catch(e) {
+      prompt('Copie a URL:', url);
+    }
+  });
+}
+
+// =====================================================================
+// Layout — fcose com clusters por alvo
+// =====================================================================
+function construirLayoutFcose() {
+  // Agrupa IDs de nós por alvo (apenas alvos reais, não 'geral')
+  const porAlvo = {};
+  GRAFO.nodes.forEach(n => {
+    const a = n.alvo || 'geral';
+    if (a === 'geral') return;
+    if (!porAlvo[a]) porAlvo[a] = [];
+    porAlvo[a].push(n.id);
+  });
+  const clusters = Object.values(porAlvo).filter(arr => arr.length > 1);
+  return {
+    name: 'fcose',
+    quality: 'default',
+    randomize: false,
+    animate: false,
+    nodeRepulsion: 8500,
+    idealEdgeLength: 70,
+    edgeElasticity: 0.45,
+    nestingFactor: 0.1,
+    gravity: 0.3,
+    gravityRange: 3.5,
+    gravityCompound: 1.5,
+    numIter: 2500,
+    tile: false,
+    packComponents: true,
+    nodeDimensionsIncludeLabels: false,
+    clusters, // Agrupamento visual por alvo
+    padding: 40,
+  };
+}
+function construirLayoutDagre() {
+  return {
+    name: 'dagre',
+    rankDir: 'LR',
+    nodeSep: 50,
+    rankSep: 120,
+    edgeSep: 10,
+    padding: 40,
+  };
+}
+function trocarLayout(nome) {
+  const layout = (nome === 'dagre') ? construirLayoutDagre() : construirLayoutFcose();
+  cy.layout(layout).run();
+  localStorage.setItem('layout-preferido', nome);
+}
+
+// =====================================================================
+// Modo Comparar 2 pessoas
+// =====================================================================
+function abrirCompararModal() {
+  // Lista de alvos reais (não "geral")
+  const alvos = [...new Set(GRAFO.nodes.map(n => n.alvo).filter(a => a && a !== 'geral'))];
+  const alvoLabels = {
+    'lula':'Lula (PT)','dirceu':'José Dirceu (PT)',
+    'jair':'Jair Bolsonaro (PL)','flavio':'Flávio Bolsonaro (PL)',
+    'zambelli':'Carla Zambelli (PL)','silveira':'Daniel Silveira (ex-PTB)',
+    'cunha':'Eduardo Cunha (ex-MDB)','temer':'Michel Temer (MDB)',
+    'cabral':'Sérgio Cabral (MDB-RJ)','garotinho':'Anthony Garotinho (RJ)',
+    'renan':'Renan Calheiros (MDB)','juca':'Romero Jucá (MDB)','geddel':'Geddel V. Lima (MDB)',
+    'aecio':'Aécio Neves (PSDB)','richa':'Beto Richa (PSDB)',
+    'arruda':'José R. Arruda (ex-DEM)',
+    'collor':'Fernando Collor (ex-PTB)',
+  };
+  alvos.sort((a,b) => (alvoLabels[a]||a).localeCompare(alvoLabels[b]||b));
+  const options = alvos.map(a => `<option value="${a}">${alvoLabels[a]||a}</option>`).join('');
+  const html = `
+    <div class="onboard-overlay" onclick="if(event.target===this)fecharCompararModal()">
+      <div class="onboard-modal" style="max-width:460px">
+        <h2>⇄ Comparar 2 pessoas</h2>
+        <p class="onboard-sub">Compara 2 pessoas lado a lado — o grafo mostra os nós de cada uma mais a <b>interseção</b> (nós transversais que ambas tocam).</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+          <label style="font-size:12px;color:var(--muted)">Pessoa A:<br>
+            <select id="cmp-a" style="width:100%;margin-top:4px;padding:6px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:12px">${options}</select>
+          </label>
+          <label style="font-size:12px;color:var(--muted)">Pessoa B:<br>
+            <select id="cmp-b" style="width:100%;margin-top:4px;padding:6px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:12px">${options}</select>
+          </label>
+        </div>
+        <h3>Comparações sugeridas:</h3>
+        <div class="onboard-cards" style="grid-template-columns:1fr 1fr">
+          <div class="onboard-card" data-a="lula" data-b="collor"><b>Lula × Collor</b><span>Dois presidentes: anulado vs condenado</span></div>
+          <div class="onboard-card" data-a="jair" data-b="lula"><b>Jair × Lula</b><span>Rivais 2022, trajetórias judiciais inversas</span></div>
+          <div class="onboard-card" data-a="cunha" data-b="temer"><b>Cunha × Temer</b><span>Dois ex-presidentes da Câmara, pivôs do impeachment</span></div>
+          <div class="onboard-card" data-a="cabral" data-b="richa"><b>Cabral × Richa</b><span>Dois governadores da Lava Jato, destinos opostos</span></div>
+          <div class="onboard-card" data-a="zambelli" data-b="silveira"><b>Zambelli × Silveira</b><span>Direita 2022: fugiu / cumpre pena</span></div>
+          <div class="onboard-card" data-a="dirceu" data-b="aecio"><b>Dirceu × Aécio</b><span>PT × PSDB, Mensalão × JBS</span></div>
+        </div>
+        <div class="onboard-footer">
+          <button class="action-btn" onclick="fecharCompararModal()">Cancelar</button>
+          <button class="action-btn" id="cmp-aplicar" style="background:#2563eb;border-color:#3b82f6">Comparar →</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.querySelectorAll('.onboard-card[data-a]').forEach(c => {
+    c.addEventListener('click', () => {
+      document.getElementById('cmp-a').value = c.dataset.a;
+      document.getElementById('cmp-b').value = c.dataset.b;
+      aplicarComparacao(c.dataset.a, c.dataset.b);
+      fecharCompararModal();
+    });
+  });
+  document.getElementById('cmp-aplicar').addEventListener('click', () => {
+    const a = document.getElementById('cmp-a').value;
+    const b = document.getElementById('cmp-b').value;
+    if (a === b) { alert('Escolha pessoas diferentes.'); return; }
+    aplicarComparacao(a, b);
+    fecharCompararModal();
+  });
+}
+function fecharCompararModal() {
+  const el = document.querySelector('.onboard-overlay');
+  if (el) el.remove();
+}
+function aplicarComparacao(alvoA, alvoB) {
+  // Mostra apenas nós dos 2 alvos + nós transversais que tocam ambos
+  const idsA = new Set(GRAFO.nodes.filter(n => n.alvo === alvoA).map(n => n.id));
+  const idsB = new Set(GRAFO.nodes.filter(n => n.alvo === alvoB).map(n => n.id));
+
+  // Nós transversais que conectam A e B (geral tocando ambos)
+  const transversais = new Set();
+  GRAFO.nodes.forEach(n => {
+    if ((n.alvo||'geral') !== 'geral') return;
+    const tocaA = GRAFO.edges.some(e =>
+      (e.source === n.id && idsA.has(e.target)) ||
+      (e.target === n.id && idsA.has(e.source)));
+    const tocaB = GRAFO.edges.some(e =>
+      (e.source === n.id && idsB.has(e.target)) ||
+      (e.target === n.id && idsB.has(e.source)));
+    if (tocaA && tocaB) transversais.add(n.id);
+  });
+
+  // Aplica filtros: só alvos selecionados + transversais relevantes
+  filtros.alvo = new Set([alvoA, alvoB, 'geral']);
+  document.querySelectorAll('input[data-filter="alvo"]').forEach(cb => cb.checked = filtros.alvo.has(cb.value));
+
+  // No grafo, destaca a interseção
+  applyFilters();
+  cy.elements().removeClass('highlighted faded search-match');
+  const todosAlvo = cy.nodes().filter(n => {
+    const a = n.data('alvo');
+    return a === alvoA || a === alvoB || (a === 'geral' && transversais.has(n.id()));
+  });
+  cy.nodes().not(todosAlvo).addClass('faded');
+  todosAlvo.addClass('highlighted');
+  // Destaca especial os transversais
+  transversais.forEach(id => cy.getElementById(id).addClass('search-match'));
+  cy.animate({fit: {eles: todosAlvo, padding: 60}}, {duration: 500});
+
+  // Mostra painel resumo
+  const nmA = GRAFO.nodes.find(n => n.alvo === alvoA && n.tipo === 'PESSOA');
+  const nmB = GRAFO.nodes.find(n => n.alvo === alvoB && n.tipo === 'PESSOA');
+  document.getElementById('answer-panel').classList.add('show');
+  document.getElementById('answer-panel').innerHTML = `
+    <div class="q">COMPARANDO: <b>${nmA?nmA.titulo:alvoA}</b> × <b>${nmB?nmB.titulo:alvoB}</b></div>
+    <div class="a">
+      <strong>${idsA.size}</strong> nós de ${alvoA} · <strong>${idsB.size}</strong> nós de ${alvoB} ·
+      <strong style="color:#fde047">${transversais.size}</strong> nós transversais em comum (destacados em amarelo).<br>
+      <em style="color:var(--muted);font-size:11px">Dica: clique num nó transversal para ver quais operações/ministros/instituições os dois tocam.</em>
+    </div>`;
+  updateFiltrosAtivosIndicator();
+}
+
+// =====================================================================
+// URL / Hash routing — estado compartilhável
+// =====================================================================
+function serializarEstado() {
+  const totTipo = 6, totStatus = 4;
+  const totCaso = new Set(GRAFO.nodes.map(n => n.caso||'geral')).size;
+  const totAlvo = new Set(GRAFO.nodes.map(n => n.alvo||'geral')).size;
+  const params = new URLSearchParams();
+  if (filtros.tipo.size < totTipo) params.set('tipo', [...filtros.tipo].join(','));
+  if (filtros.status.size < totStatus) params.set('status', [...filtros.status].join(','));
+  if (filtros.alvo.size < totAlvo) params.set('alvo', [...filtros.alvo].join(','));
+  if (filtros.caso.size < totCaso) params.set('caso', [...filtros.caso].join(','));
+  if (filtros.ano < 2026) params.set('ano', String(filtros.ano));
+  const sel = cy.elements('.search-match, node:selected').map(e => e.id())[0];
+  if (sel) params.set('sel', sel);
+  const q = (document.getElementById('search')||{}).value;
+  if (q) params.set('q', q);
+  return params.toString();
+}
+function aplicarEstado(hash) {
+  if (!hash || hash.length < 2) return false;
+  const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
+  let aplicado = false;
+  if (params.has('tipo')) {
+    filtros.tipo = new Set(params.get('tipo').split(','));
+    document.querySelectorAll('input[data-filter="tipo"]').forEach(cb => cb.checked = filtros.tipo.has(cb.value));
+    aplicado = true;
+  }
+  if (params.has('status')) {
+    filtros.status = new Set(params.get('status').split(','));
+    document.querySelectorAll('input[data-filter="status"]').forEach(cb => cb.checked = filtros.status.has(cb.value));
+    aplicado = true;
+  }
+  if (params.has('alvo')) {
+    filtros.alvo = new Set(params.get('alvo').split(','));
+    document.querySelectorAll('input[data-filter="alvo"]').forEach(cb => cb.checked = filtros.alvo.has(cb.value));
+    aplicado = true;
+  }
+  if (params.has('caso')) {
+    filtros.caso = new Set(params.get('caso').split(','));
+    document.querySelectorAll('input[data-filter="caso"]').forEach(cb => cb.checked = filtros.caso.has(cb.value));
+    aplicado = true;
+  }
+  if (params.has('ano')) {
+    filtros.ano = parseInt(params.get('ano'));
+    const tl = document.getElementById('timeline');
+    if (tl) { tl.value = filtros.ano; document.getElementById('year-label').textContent = `até ${filtros.ano}`; }
+    aplicado = true;
+  }
+  applyFilters();
+  if (params.has('sel')) {
+    const node = cy.getElementById(params.get('sel'));
+    if (node && node.length) {
+      setTimeout(() => {
+        showDetails(node.data());
+        cy.animate({center: {eles: node}, zoom: 1.2}, {duration: 400});
+      }, 300);
+    }
+    aplicado = true;
+  }
+  if (params.has('q')) {
+    const se = document.getElementById('search');
+    if (se) {
+      se.value = params.get('q');
+      document.getElementById('search-wrap').classList.add('has-value');
+      setTimeout(() => runSearch(se.value), 400);
+    }
+    aplicado = true;
+  }
+  return aplicado;
+}
+function sincronizarURL() {
+  const estado = serializarEstado();
+  const novoHash = estado ? '#' + estado : '';
+  if (window.location.hash !== novoHash) {
+    history.replaceState(null, '', window.location.pathname + window.location.search + novoHash);
+  }
+}
+
+// =====================================================================
+// Onboarding — modal inicial com pontos de interesse
+// =====================================================================
+function mostrarOnboarding() {
+  if (localStorage.getItem('onboarding-visto') === 'v1') return;
+  const html = `
+    <div class="onboard-overlay" onclick="if(event.target===this)fecharOnboarding()">
+      <div class="onboard-modal">
+        <h2>Grafo Didático — Corrupção no Brasil</h2>
+        <p class="onboard-sub">Ferramenta para separar <b>fato</b>, <b>contexto</b> e <b>narrativa</b>. Cada nó é classificado por natureza epistêmica, não por posição política.</p>
+        <h3>Comece por um caso emblemático:</h3>
+        <div class="onboard-cards">
+          <div class="onboard-card" data-hash="alvo=lula&caso=triplex">
+            <b>Triplex do Guarujá</b>
+            <span>Condenação de Lula anulada pelo STF — ciclo completo acusação→condenação→anulação</span>
+          </div>
+          <div class="onboard-card" data-hash="alvo=jair&caso=golpe-8jan">
+            <b>Trama Golpista 8/1</b>
+            <span>Condenação de Bolsonaro em 2025 — único voto dissidente de Fux</span>
+          </div>
+          <div class="onboard-card" data-hash="alvo=collor">
+            <b>Collor — 2 ciclos</b>
+            <span>Impeachment 1992 + condenação Lava Jato 2023 = único ex-presidente preso em definitivo</span>
+          </div>
+          <div class="onboard-card" data-hash="alvo=cabral">
+            <b>Esquema RJ (Cabral)</b>
+            <span>425+ anos de pena, delação anulada 7x4, CNJ aposenta Bretas em 2025</span>
+          </div>
+          <div class="onboard-card" data-hash="tipo=ALEGACAO,FATO&q=contradições">
+            <b>Contradições entre delatores</b>
+            <span>Léo Pinheiro v1 vs v2 vs retratação; Palocci "inventou" segundo PF</span>
+          </div>
+          <div class="onboard-card" data-hash="alvo=lula,cunha&tipo=FATO,DECISAO,CONTEXTO">
+            <b>Comparação: Lula × Cunha</b>
+            <span>Mesma Lava Jato, destinos diferentes — anulação vs condenação definitiva</span>
+          </div>
+        </div>
+        <div class="onboard-footer">
+          <label><input type="checkbox" id="onboard-nao-mostrar"> Não mostrar novamente</label>
+          <button class="action-btn" onclick="fecharOnboarding()">Explorar livremente →</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.querySelectorAll('.onboard-card').forEach(c => {
+    c.addEventListener('click', () => {
+      window.location.hash = '#' + c.dataset.hash;
+      aplicarEstado(window.location.hash);
+      fecharOnboarding();
+    });
+  });
+}
+function fecharOnboarding() {
+  if (document.getElementById('onboard-nao-mostrar') && document.getElementById('onboard-nao-mostrar').checked) {
+    localStorage.setItem('onboarding-visto', 'v1');
+  }
+  const el = document.querySelector('.onboard-overlay');
+  if (el) el.remove();
 }
 
 // =====================================================================
@@ -1893,6 +2479,24 @@ document.addEventListener('DOMContentLoaded', () => {
   initCy();
   wireFilters();
   updateStats();
+
+  // Aplica estado da URL se houver
+  if (window.location.hash) {
+    aplicarEstado(window.location.hash);
+  } else {
+    mostrarOnboarding();
+  }
+
+  // Sincroniza URL periodicamente após mudanças
+  cy.on('free dragfree', () => sincronizarURL());
+  document.addEventListener('change', (e) => {
+    if (e.target.matches('input[data-filter]')) sincronizarURL();
+  });
+  const searchEl = document.getElementById('search');
+  if (searchEl) {
+    let t;
+    searchEl.addEventListener('input', () => { clearTimeout(t); t = setTimeout(sincronizarURL, 800); });
+  }
 });
 </script>
 </body>

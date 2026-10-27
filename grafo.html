@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none';">
+<title>Grafo Didático — Corrupção no Brasil: fato, contexto, narrativa</title>
+<script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"
+        integrity="sha384-J7Q85oZE4GJ/e7+n2aOQsLXfDwwfnA8S2nZAL5BpFsfpCF84zQD7LroZ/dMnLgex"
+        crossorigin="anonymous"></script>
+<script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"
+        integrity="sha384-2IH3T69EIKYC4c+RXZifZRvaH5SRUdacJW7j6HtE5rQbvLhKKdawxq6vpIzJ7j9M"
+        crossorigin="anonymous"></script>
+<script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"
+        integrity="sha384-u69h9ebXeSjlg6q/rb1zKTRAGu/h8deCl0409xpS/QJctMKnc4M9Fzkm01VOQdeF"
+        crossorigin="anonymous"></script>
+<script src="dados.js"></script>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg2: #1e293b;
+    --bg3: #334155;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --border: #475569;
+
+    --fato: #3b82f6;
+    --alegacao: #f59e0b;
+    --decisao: #8b5cf6;
+    --contexto: #64748b;
+    --narrativa: #ec4899;
+    --pessoa: #10b981;
+
+    --anulado: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+  }
+  #app {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 320px 1fr 360px;
+    grid-template-areas:
+      "top top top"
+      "left graph right"
+      "bottom bottom bottom";
+    height: 100vh;
+  }
+
+  /* Mobile: < 900px */
+  @media (max-width: 900px) {
+    #app {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto 1fr auto auto;
+      grid-template-areas:
+        "top"
+        "left"
+        "graph"
+        "right"
+        "bottom";
+    }
+    #left, #right {
+      max-height: 180px; overflow-y: auto;
+    }
+    #topbar { flex-wrap: wrap; }
+    #topbar h1 { font-size: 14px; width: 100%; }
+    #search-wrap { flex: 1 1 100%; min-width: unset; }
+    #how-to-read { display: none; }
+  }
+  #topbar {
+    grid-area: top;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  #topbar h1 {
+    margin: 0; font-size: 16px; font-weight: 600;
+  }
+  #topbar h1 .sub { color: var(--muted); font-weight: 400; margin-left: 8px; }
+  .mode-buttons { display: flex; gap: 4px; }
+  .mode-btn {
+    background: var(--bg3); color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 12px; font-size: 12px;
+    border-radius: 6px; cursor: pointer;
+    transition: all .15s;
+  }
+  .mode-btn:hover { background: var(--border); }
+  .mode-btn.active { background: #2563eb; border-color: #3b82f6; }
+  #search-wrap {
+    position: relative;
+    flex: 1 1 460px;
+    min-width: 320px;
+    max-width: 640px;
+  }
+  #search {
+    background: var(--bg3); color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px 32px 8px 12px; font-size: 13px;
+    border-radius: 6px; width: 100%;
+  }
+  #search:focus { outline: 2px solid var(--fato); }
+  #search-clear {
+    position: absolute; right: 6px; top: 50%;
+    transform: translateY(-50%);
+    background: transparent; border: 0; color: var(--muted);
+    font-size: 20px; cursor: pointer; padding: 0 6px;
+    line-height: 1; display: none;
+  }
+  #search-clear:hover { color: var(--text); }
+  #search-wrap.has-value #search-clear { display: block; }
+
+  #answer-panel {
+    display: none;
+    background: linear-gradient(180deg, #1e3a8a22, transparent);
+    border: 1px solid #3b82f6;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    font-size: 12px; line-height: 1.5;
+  }
+  #answer-panel.show { display: block; }
+  #answer-panel .q {
+    color: var(--muted); font-size: 11px;
+    margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  #answer-panel .q b { color: #93c5fd; text-transform: none; letter-spacing: 0; }
+  #answer-panel .a strong { color: #fde047; }
+  #answer-panel .a code {
+    background: var(--bg3); padding: 1px 5px;
+    border-radius: 3px; font-size: 11px;
+  }
+
+  #help-modal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  #help-modal.show { display: flex; }
+  #help-modal .inner {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-width: 640px; width: 90%;
+    max-height: 80vh; overflow-y: auto;
+    padding: 20px;
+  }
+  #help-modal h2 { margin: 0 0 12px; font-size: 16px; }
+  #help-modal .close-help {
+    float: right; background: transparent; border: 0;
+    color: var(--muted); font-size: 20px; cursor: pointer;
+  }
+  #help-modal .ex {
+    padding: 8px 10px; margin: 4px 0;
+    background: var(--bg3); border-radius: 4px;
+    font-size: 12px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    transition: background .15s;
+  }
+  #help-modal .ex:hover { background: var(--border); }
+  #help-modal .ex code {
+    color: #fde047; font-family: monospace;
+    font-size: 11px;
+  }
+  #help-modal .ex .desc { color: var(--muted); font-size: 11px; }
+  #help-modal h3 {
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--muted);
+    margin: 16px 0 6px; font-weight: 600;
+  }
+  .spacer { flex: 1; }
+  #stats { font-size: 11px; color: var(--muted); }
+
+  #left {
+    grid-area: left;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+  }
+  #right {
+    grid-area: right;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .section {
+    margin-bottom: 20px;
+  }
+  .section h3 {
+    margin: 0 0 10px 0;
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--muted);
+    font-weight: 600;
+  }
+  .filter-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; border-radius: 4px;
+    cursor: pointer; font-size: 13px;
+    transition: background .1s;
+  }
+  .filter-item:hover { background: var(--bg3); }
+  .filter-item input { cursor: pointer; }
+  .color-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block; flex-shrink: 0;
+  }
+  .count { color: var(--muted); font-size: 11px; margin-left: auto; }
+
+  #graph {
+    grid-area: graph;
+    background: var(--bg);
+    position: relative;
+  }
+  #cy { width: 100%; height: 100%; }
+
+  #bottom {
+    grid-area: bottom;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  #timeline-container {
+    flex: 1;
+    display: flex; align-items: center; gap: 12px;
+  }
+  #timeline {
+    flex: 1;
+    accent-color: var(--fato);
+  }
+  #year-label {
+    font-size: 12px; color: var(--muted);
+    min-width: 180px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #detail-panel .empty {
+    color: var(--muted); font-size: 13px; font-style: italic;
+    text-align: center; padding: 24px 0;
+  }
+  #detail-panel h2 {
+    margin: 0 0 4px 0; font-size: 16px;
+    line-height: 1.3;
+  }
+  #detail-panel .meta {
+    display: inline-block;
+    font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.08em; padding: 2px 6px;
+    border-radius: 3px; margin-bottom: 10px;
+    font-weight: 600;
+  }
+  #detail-panel .date {
+    color: var(--muted); font-size: 12px; margin-bottom: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  #detail-panel .desc {
+    font-size: 13px; line-height: 1.5;
+    margin: 10px 0 14px 0;
+  }
+  #detail-panel .sources {
+    font-size: 12px;
+  }
+  #detail-panel .sources a {
+    color: #93c5fd; text-decoration: none;
+    display: block; margin: 4px 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #detail-panel .sources a:hover { text-decoration: underline; }
+  #detail-panel .related {
+    margin-top: 16px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  #detail-panel .related-item {
+    font-size: 12px; padding: 4px 6px;
+    cursor: pointer; border-radius: 3px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  #detail-panel .related-item:hover { background: var(--bg3); }
+  #detail-panel .status-badge {
+    display: inline-block; padding: 2px 6px;
+    border-radius: 3px; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-left: 6px; font-weight: 600;
+  }
+  .status-anulado { background: #450a0a; color: #fca5a5; }
+  .status-arquivado { background: #1e3a1e; color: #86efac; }
+  .status-ativo { background: #1e3a8a; color: #93c5fd; }
+
+  #how-to-read {
+    position: absolute; bottom: 16px; left: 16px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; max-width: 320px;
+    font-size: 11px; line-height: 1.4; color: var(--muted);
+    z-index: 10;
+  }
+  #how-to-read b { color: var(--text); }
+  #how-to-read .close {
+    float: right; cursor: pointer; color: var(--muted);
+    font-size: 14px; margin-left: 8px;
+  }
+  #how-to-read .close:hover { color: var(--text); }
+
+  .action-btn {
+    background: var(--bg3); color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 10px; font-size: 11px;
+    border-radius: 4px; cursor: pointer;
+    margin-top: 6px;
+  }
+  .action-btn:hover { background: var(--border); }
+
+  .edge-legend-item {
+    font-size: 11px; color: var(--muted);
+    padding: 3px 0;
+  }
+  .edge-legend-item code {
+    background: var(--bg3); padding: 1px 4px;
+    border-radius: 3px; color: var(--text);
+    font-size: 10px;
+  }
+
+  details > summary {
+    cursor: pointer; font-size: 12px; color: var(--muted);
+    padding: 4px 0;
+  }
+  details > summary:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <h1>Grafo Didático <span class="sub">· Corrupção no Brasil · fato vs contexto vs narrativa</span></h1>
+    <div class="mode-buttons">
+      <button class="mode-btn active" data-mode="tudo">Tudo</button>
+      <button class="mode-btn" data-mode="fatos">Só fatos</button>
+      <button class="mode-btn" data-mode="judicial">Só judicial</button>
+      <button class="mode-btn" data-mode="narrativas">Só narrativas</button>
+    </div>
+    <div id="search-wrap">
+      <input id="search" type="text" placeholder="Pergunte: caminho da corrupção de Lula / anulações de Jair / quem delatou Cunha / conexão Flávio-Jair..." autocomplete="off" />
+      <button id="search-clear" title="Limpar">×</button>
+    </div>
+    <div class="spacer"></div>
+    <div id="stats"></div>
+    <button class="action-btn" id="help-btn" title="Exemplos de busca">?</button>
+    <button class="action-btn" id="export-btn">Exportar JSON</button>
+    <button class="action-btn" id="fit-btn">Ajustar</button>
+  </div>
+
+  <div id="left">
+    <div class="section">
+      <h3>Tipos de nó</h3>
+      <label class="filter-item">
+        <input type="checkbox" data-filter="tipo" value="FATO" checked>
+        <span class="color-dot" style="background:var(--fato)"></span>
+        <span>Fato documentado</span>
+        <span class="count" data-count="FATO"></span>
+      </label>
+      <label class="filter-item">
+        <input type="checkbox" data-filter="tipo" value="DECISAO" checked>
+        <span class="color-dot" style="background:var(--decisao)"></span>
+        <span>Decisão judicial</span>
+        <span class="count" data-count="DECISAO"></span>
+      </label>
+      <label class="filter-item">
+        <input type="checkbox" data-filter="tipo" value="ALEGACAO" checked>
+        <span class="color-dot" style="background:var(--alegacao)"></span>
+        <span>Alegação/delação</span>
+        <span class="count" data-count="ALEGACAO"></span>
+      </label>
+      <label class="filter-item">
+        <input type="checkbox" data-filter="tipo" value="CONTEXTO" checked>
+        <span class="color-dot" style="background:var(--contexto)"></span>
+        <span>Contexto</span>
+        <span class="count" data-count="CONTEXTO"></span>
+      </label>
+      <label class="filter-item">
+        <input type="checkbox" data-filter="tipo" value="NARRATIVA" checked>
+        <span class="color-dot" style="background:var(--narrativa)"></span>
+        <span>Narrativa (por fonte)</span>
+        <span class="count" data-count="NARRATIVA"></span>
+      </label>
+      <label class="filter-item">
+        <input type="checkbox" data-filter="tipo" value="PESSOA" checked>
+        <span class="color-dot" style="background:var(--pessoa)"></span>
+        <span>Pessoa/entidade</span>
+        <span class="count" data-count="PESSOA"></span>
+      </label>
+    </div>
+
+    <div class="section">
+      <h3>Alvo</h3>
+      <div id="alvo-filters"></div>
+    </div>
+
+    <div class="section">
+      <h3>Casos</h3>
+      <div id="caso-filters"></div>
+    </div>
+
+    <div class="section">
+      <h3>Status</h3>
+      <label class="filter-item">
+        <input type="checkbox" data-filter="status" value="ativo" checked>
+        <span>Vigente</span>
+      </label>
+      <label class="filter-item">
+        <input type="checkbox" data-filter="status" value="anulado" checked>
+        <span>Anulado/absolvido</span>
+      </label>
+      <label class="filter-item">
+        <input type="checkbox" data-filter="status" value="arquivado" checked>
+        <span>Arquivado</span>
+      </label>
+      <label class="filter-item">
+        <input type="checkbox" data-filter="status" value="em-andamento" checked>
+        <span>Em andamento</span>
+      </label>
+    </div>
+
+    <div class="section">
+      <h3>Como ler</h3>
+      <div style="font-size:12px;color:var(--muted);line-height:1.5">
+        <p style="margin:6px 0"><b style="color:var(--fato)">Fato</b> — evento com registro primário (sentença, nota, áudio).</p>
+        <p style="margin:6px 0"><b style="color:var(--decisao)">Decisão</b> — sentença, acórdão ou HC publicado.</p>
+        <p style="margin:6px 0"><b style="color:var(--alegacao)">Alegação</b> — delação/denúncia; afirmação de uma parte.</p>
+        <p style="margin:6px 0"><b style="color:var(--contexto)">Contexto</b> — fato de pano de fundo.</p>
+        <p style="margin:6px 0"><b style="color:var(--narrativa)">Narrativa</b> — enquadramento publicado, nomeado por fonte.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Tipos de aresta</h3>
+      <div class="edge-legend-item"><code>acusou</code> MP → réu</div>
+      <div class="edge-legend-item"><code>delatou</code> delator → acusado</div>
+      <div class="edge-legend-item"><code>condenou</code> juiz/tribunal → réu</div>
+      <div class="edge-legend-item" style="color:#fca5a5"><code>anulou</code> instância superior → decisão</div>
+      <div class="edge-legend-item"><code>contradiz</code> alegações conflitantes</div>
+      <div class="edge-legend-item"><code>baseia-se-em</code> narrativa → fato</div>
+      <div class="edge-legend-item"><code>enquadra</code> narrativa → evento</div>
+    </div>
+  </div>
+
+  <div id="graph">
+    <div id="cy"></div>
+    <div id="how-to-read">
+      <span class="close" onclick="this.parentElement.style.display='none'">×</span>
+      <b>Ferramenta didática.</b> Cada nó é classificado por natureza epistemológica (fato / alegação / decisão / contexto / narrativa). Clique em qualquer nó para ver fontes. Use os botões no topo para mostrar apenas fatos ou apenas narrativas e comparar como a mesma base factual sustenta enquadramentos diferentes.
+    </div>
+  </div>
+
+  <div id="right">
+    <div id="answer-panel"></div>
+    <div id="detail-panel">
+      <div class="empty">Clique em um nó para ver detalhes, datas e fontes.</div>
+    </div>
+  </div>
+
+  <div id="help-modal">
+    <div class="inner">
+      <button class="close-help" onclick="document.getElementById('help-modal').classList.remove('show')">×</button>
+      <h2>Exemplos de busca investigativa</h2>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 10px">
+        Clique num exemplo para rodar. Nomes aceitos: Lula, Flávio, Jair, Bolsonaro, Cunha, Moro, Dallagnol, Fachin, Toffoli, Lewandowski, Palocci, Odebrecht, Léo Pinheiro, Queiroz, Cid etc.
+      </p>
+
+      <h3>Caminho / corrupção pessoal</h3>
+      <div class="ex" data-q="caminho da corrupção de Lula">
+        <code>caminho da corrupção de Lula</code>
+        <span class="desc">— acusações + decisões + status final</span>
+      </div>
+      <div class="ex" data-q="caminho da corrupção de Jair Bolsonaro">
+        <code>caminho da corrupção de Jair</code>
+        <span class="desc">— tudo que acusam o Jair + condenações</span>
+      </div>
+      <div class="ex" data-q="caminho da corrupção de Cunha">
+        <code>caminho da corrupção de Cunha</code>
+        <span class="desc">— Suíça, Sépsis, cassação, impeachment</span>
+      </div>
+
+      <h3>Conexões entre pessoas</h3>
+      <div class="ex" data-q="conexão entre Flávio e Jair">
+        <code>conexão entre Flávio e Jair</code>
+      </div>
+      <div class="ex" data-q="caminho entre Lula e Cunha">
+        <code>caminho entre Lula e Cunha</code>
+        <span class="desc">— menor caminho via nós compartilhados</span>
+      </div>
+      <div class="ex" data-q="o que liga Moro a Dallagnol">
+        <code>o que liga Moro a Dallagnol</code>
+      </div>
+
+      <h3>Delações</h3>
+      <div class="ex" data-q="quem delatou Lula">
+        <code>quem delatou Lula</code>
+      </div>
+      <div class="ex" data-q="quem delatou Cunha">
+        <code>quem delatou Cunha</code>
+      </div>
+
+      <h3>Status jurídico</h3>
+      <div class="ex" data-q="o que foi anulado contra Lula">
+        <code>o que foi anulado contra Lula</code>
+      </div>
+      <div class="ex" data-q="o que foi arquivado">
+        <code>o que foi arquivado</code>
+      </div>
+      <div class="ex" data-q="condenações de Jair">
+        <code>condenações de Jair</code>
+        <span class="desc">— decisões ativas, não anuladas</span>
+      </div>
+      <div class="ex" data-q="o que transitou em julgado">
+        <code>o que transitou em julgado</code>
+      </div>
+
+      <h3>Narrativas</h3>
+      <div class="ex" data-q="narrativas sobre Lula">
+        <code>narrativas sobre Lula</code>
+      </div>
+      <div class="ex" data-q="contradições">
+        <code>contradições</code>
+        <span class="desc">— tudo onde há versões conflitantes</span>
+      </div>
+
+      <h3>Tempo</h3>
+      <div class="ex" data-q="o que aconteceu em 2016">
+        <code>o que aconteceu em 2016</code>
+      </div>
+      <div class="ex" data-q="eventos entre 2018 e 2022">
+        <code>eventos entre 2018 e 2022</code>
+      </div>
+
+      <h3>Busca livre</h3>
+      <div class="ex" data-q="triplex">
+        <code>triplex</code>
+        <span class="desc">— match textual em qualquer campo</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom">
+    <div id="timeline-container">
+      <span style="font-size:11px;color:var(--muted)">Até:</span>
+      <input type="range" id="timeline" min="2003" max="2026" value="2026" step="1">
+      <span id="year-label">todos os eventos (até 2026)</span>
+    </div>
+    <button class="action-btn" id="reset-timeline">Reset</button>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// DADOS DO GRAFO — fonte única de verdade.
+// Cada nó: { id, label, tipo, data, titulo, descricao, fontes, caso, status }
+// Cada aresta: { id, source, target, tipo, label }
+// =====================================================================
+// GRAFO é definido globalmente em dados.js
+
+// =====================================================================
+// CORES e ESTILOS
+// =====================================================================
+const COR_TIPO = {
+  FATO: '#3b82f6',
+  ALEGACAO: '#f59e0b',
+  DECISAO: '#8b5cf6',
+  CONTEXTO: '#64748b',
+  NARRATIVA: '#ec4899',
+  PESSOA: '#10b981',
+};
+
+const COR_ARESTA = {
+  acusou:        '#f59e0b',
+  delatou:       '#f59e0b',
+  condenou:      '#8b5cf6',
+  anulou:        '#ef4444',
+  contradiz:     '#ef4444',
+  'baseia-se-em':'#64748b',
+  enquadra:      '#ec4899',
+  cronologico:   '#475569',
+  defende:       '#10b981',
+  envolve:       '#64748b',
+};
+
+// =====================================================================
+// Montar elementos do Cytoscape
+// =====================================================================
+function buildElements(data) {
+  const nodes = data.nodes.map(n => ({
+    data: {
+      ...n,
+      cor: COR_TIPO[n.tipo] || '#64748b',
+      corBorda: n.status === 'anulado' ? '#ef4444'
+              : n.status === 'arquivado' ? '#86efac'
+              : '#1e293b'
+    },
+    classes: `tipo-${n.tipo} status-${n.status || 'ativo'} caso-${n.caso || 'geral'}`
+  }));
+  const edges = data.edges.map(e => ({
+    data: {
+      ...e,
+      cor: COR_ARESTA[e.tipo] || '#475569'
+    },
+    classes: `edge-${e.tipo}`
+  }));
+  return [...nodes, ...edges];
+}
+
+// =====================================================================
+// Inicializar Cytoscape
+// =====================================================================
+let cy;
+function initCy() {
+  cy = cytoscape({
+    container: document.getElementById('cy'),
+    elements: buildElements(GRAFO),
+    style: [
+      {
+        selector: 'node',
+        style: {
+          'background-color': 'data(cor)',
+          'border-width': 2,
+          'border-color': 'data(corBorda)',
+          'label': 'data(label)',
+          'color': '#f1f5f9',
+          'text-wrap': 'wrap',
+          'text-max-width': '140px',
+          'font-size': '10px',
+          'font-weight': 500,
+          'text-valign': 'bottom',
+          'text-margin-y': 6,
+          'text-outline-width': 2,
+          'text-outline-color': '#0f172a',
+          'width': 'mapData(peso, 1, 10, 20, 60)',
+          'height': 'mapData(peso, 1, 10, 20, 60)',
+        }
+      },
+      {
+        selector: 'node[tipo = "PESSOA"]',
+        style: { 'shape': 'diamond', 'width': 36, 'height': 36 }
+      },
+      {
+        selector: 'node[tipo = "DECISAO"]',
+        style: { 'shape': 'hexagon' }
+      },
+      {
+        selector: 'node[tipo = "NARRATIVA"]',
+        style: { 'shape': 'round-rectangle' }
+      },
+      {
+        selector: 'node[tipo = "CONTEXTO"]',
+        style: { 'shape': 'barrel', 'width': 44, 'height': 24 }
+      },
+      {
+        selector: 'node[status = "anulado"]',
+        style: {
+          'border-width': 3,
+          'border-style': 'dashed',
+          'opacity': 0.75,
+        }
+      },
+      {
+        selector: 'node:selected',
+        style: {
+          'border-width': 4,
+          'border-color': '#fde047',
+          'z-index': 999,
+        }
+      },
+      {
+        selector: 'edge',
+        style: {
+          'width': 1.5,
+          'line-color': 'data(cor)',
+          'target-arrow-color': 'data(cor)',
+          'target-arrow-shape': 'triangle',
+          'curve-style': 'bezier',
+          'opacity': 0.65,
+          'label': 'data(label)',
+          'font-size': '9px',
+          'color': '#cbd5e1',
+          'text-background-color': '#0f172a',
+          'text-background-opacity': 0.9,
+          'text-background-padding': '2px',
+        }
+      },
+      {
+        selector: 'edge[tipo = "anulou"]',
+        style: { 'width': 2.5, 'line-style': 'dashed', 'opacity': 0.85 }
+      },
+      {
+        selector: 'edge[tipo = "contradiz"]',
+        style: { 'line-style': 'dashed', 'target-arrow-shape': 'diamond' }
+      },
+      {
+        selector: '.highlighted',
+        style: { 'opacity': 1, 'z-index': 100 }
+      },
+      {
+        selector: '.faded',
+        style: { 'opacity': 0.06 }
+      },
+      {
+        selector: 'node.search-match',
+        style: {
+          'border-width': 4,
+          'border-color': '#fde047',
+          'z-index': 500,
+          'shadow-blur': 20,
+          'shadow-color': '#fde047',
+          'shadow-opacity': 0.5,
+        }
+      },
+      {
+        selector: 'edge.highlighted',
+        style: { 'width': 3, 'opacity': 1 }
+      },
+    ],
+    layout: {
+      name: 'dagre',
+      rankDir: 'LR',
+      nodeSep: 50,
+      rankSep: 120,
+      edgeSep: 10,
+      padding: 40,
+    },
+    wheelSensitivity: 0.2,
+    minZoom: 0.15,
+    maxZoom: 3,
+  });
+
+  cy.on('tap', 'node', e => showDetails(e.target.data()));
+  cy.on('tap', (e) => {
+    if (e.target === cy) {
+      clearSelection();
+    }
+  });
+}
+
+// =====================================================================
+// Painel de detalhes
+// =====================================================================
+function showDetails(d) {
+  const statusLabel = {
+    'ativo':'Vigente','anulado':'Anulado','arquivado':'Arquivado','em-andamento':'Em andamento'
+  }[d.status||'ativo'] || '';
+  const statusClass = `status-${d.status||'ativo'}`;
+
+  const fontes = (d.fontes||[]).map(f =>
+    `<a href="${f.url}" target="_blank" rel="noopener">${f.titulo || f.url}</a>`
+  ).join('');
+
+  // Nós relacionados
+  const connected = cy.getElementById(d.id).neighborhood('node');
+  const related = connected.map(n => {
+    const nd = n.data();
+    return `<div class="related-item" data-id="${nd.id}">
+      <span class="color-dot" style="background:${COR_TIPO[nd.tipo]}"></span>
+      <span>${nd.label}</span>
+    </div>`;
+  }).join('');
+
+  const dataFmt = d.data ? formatDate(d.data) : '';
+
+  document.getElementById('detail-panel').innerHTML = `
+    <span class="meta" style="background:${COR_TIPO[d.tipo]}22;color:${COR_TIPO[d.tipo]}">${d.tipo}</span>
+    ${statusLabel ? `<span class="status-badge ${statusClass}">${statusLabel}</span>` : ''}
+    <h2>${d.titulo || d.label}</h2>
+    ${dataFmt ? `<div class="date">${dataFmt}</div>` : ''}
+    <div class="desc">${d.descricao || ''}</div>
+    ${fontes ? `<div class="sources"><h3 style="font-size:11px;text-transform:uppercase;color:var(--muted);margin:12px 0 4px;letter-spacing:.08em">Fontes</h3>${fontes}</div>` : ''}
+    ${related ? `<div class="related"><h3 style="font-size:11px;text-transform:uppercase;color:var(--muted);margin:0 0 6px;letter-spacing:.08em">Conectados</h3>${related}</div>` : ''}
+  `;
+
+  // Highlight no grafo
+  cy.elements().removeClass('highlighted faded');
+  const neighborhood = cy.getElementById(d.id).closedNeighborhood();
+  cy.elements().not(neighborhood).addClass('faded');
+  neighborhood.addClass('highlighted');
+
+  // Clique em "conectados"
+  document.querySelectorAll('.related-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const target = cy.getElementById(el.dataset.id);
+      if (target) {
+        showDetails(target.data());
+        cy.animate({center: {eles: target}, zoom: 1.2}, {duration: 400});
+      }
+    });
+  });
+}
+
+function clearSelection() {
+  cy.elements().removeClass('highlighted faded');
+  document.getElementById('detail-panel').innerHTML = '<div class="empty">Clique em um nó para ver detalhes, datas e fontes.</div>';
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  if (iso.length === 4) return iso;
+  const [y,m,d] = iso.split('-');
+  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  if (d) return `${d} ${meses[parseInt(m)-1]} ${y}`;
+  if (m) return `${meses[parseInt(m)-1]} ${y}`;
+  return y;
+}
+
+// =====================================================================
+// FILTROS
+// =====================================================================
+const filtros = {
+  tipo: new Set(['FATO','ALEGACAO','DECISAO','CONTEXTO','NARRATIVA','PESSOA']),
+  status: new Set(['ativo','anulado','arquivado','em-andamento']),
+  caso: new Set(),
+  alvo: new Set(),
+  ano: 2026,
+};
+
+function applyFilters() {
+  cy.batch(() => {
+    cy.nodes().forEach(n => {
+      const d = n.data();
+      const tipoOk = filtros.tipo.has(d.tipo);
+      const statusOk = filtros.status.has(d.status || 'ativo');
+      const casoOk = !filtros.caso.size || filtros.caso.has(d.caso || 'geral');
+      const alvoOk = !filtros.alvo.size || filtros.alvo.has(d.alvo || 'geral');
+      const anoNo = d.data ? parseInt(d.data.substring(0,4)) : null;
+      const anoOk = !anoNo || anoNo <= filtros.ano;
+      const visible = tipoOk && statusOk && casoOk && alvoOk && anoOk;
+      n.style('display', visible ? 'element' : 'none');
+    });
+    // Arestas: só exibe se ambos endpoints visíveis
+    cy.edges().forEach(e => {
+      const srcVisible = e.source().style('display') !== 'none';
+      const tgtVisible = e.target().style('display') !== 'none';
+      e.style('display', (srcVisible && tgtVisible) ? 'element' : 'none');
+    });
+  });
+  updateStats();
+}
+
+function updateStats() {
+  const visibleNodes = cy.nodes().filter(n => n.style('display') !== 'none');
+  const visibleEdges = cy.edges().filter(e => e.style('display') !== 'none');
+  document.getElementById('stats').textContent =
+    `${visibleNodes.length} nós · ${visibleEdges.length} arestas visíveis`;
+}
+
+// =====================================================================
+// MODOS DIDÁTICOS
+// =====================================================================
+function setMode(mode) {
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  const presets = {
+    'tudo':       new Set(['FATO','ALEGACAO','DECISAO','CONTEXTO','NARRATIVA','PESSOA']),
+    'fatos':      new Set(['FATO','PESSOA','CONTEXTO']),
+    'judicial':   new Set(['FATO','DECISAO','ALEGACAO','PESSOA']),
+    'narrativas': new Set(['NARRATIVA','FATO']),
+  };
+  filtros.tipo = presets[mode];
+  // Sincroniza checkboxes
+  document.querySelectorAll('input[data-filter="tipo"]').forEach(cb => {
+    cb.checked = filtros.tipo.has(cb.value);
+  });
+  applyFilters();
+}
+
+// =====================================================================
+// BUSCA INVESTIGATIVA — padrões locais
+// =====================================================================
+function normalize(s) {
+  return (s||'').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^\w\s]/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+
+// Aliases: variantes de nome → id de PESSOA no grafo
+const ALIASES = {
+  'lula':'p-lula','luiz inacio lula da silva':'p-lula','luiz inacio':'p-lula',
+  'moro':'p-moro','sergio moro':'p-moro','sérgio moro':'p-moro',
+  'dallagnol':'p-dallagnol','deltan':'p-dallagnol','deltan dallagnol':'p-dallagnol',
+  'fachin':'p-fachin','edson fachin':'p-fachin',
+  'toffoli':'p-toffoli','dias toffoli':'p-toffoli',
+  'lewandowski':'p-lewandowski','ricardo lewandowski':'p-lewandowski',
+  'gilmar':'p-gilmar','gilmar mendes':'p-gilmar',
+  'carmen':'p-carmen','carmen lucia':'p-carmen','cármen lúcia':'p-carmen',
+  'hardt':'p-hardt','gabriela hardt':'p-hardt',
+  'gebran':'p-gebran','gebran neto':'p-gebran',
+  'leo':'p-leo','leo pinheiro':'p-leo','léo pinheiro':'p-leo','pinheiro':'p-leo',
+  'marcelo odebrecht':'p-marcelo-odebrecht','marcelo':'p-marcelo-odebrecht',
+  'emilio':'p-emilio-odebrecht','emilio odebrecht':'p-emilio-odebrecht','emílio':'p-emilio-odebrecht',
+  'palocci':'p-palocci','antonio palocci':'p-palocci',
+  'delcidio':'p-delcidio','delcídio':'p-delcidio','delcidio do amaral':'p-delcidio',
+  'paulo roberto':'p-paulo-costa','paulo roberto costa':'p-paulo-costa','pr costa':'p-paulo-costa',
+  'youssef':'p-youssef','alberto youssef':'p-youssef',
+  'pedro correa':'p-pedro-correa','pedro corrêa':'p-pedro-correa',
+  'ricardo pessoa':'p-pessoa','pessoa':'p-pessoa','utc':'p-pessoa',
+  'barusco':'p-barusco','pedro barusco':'p-barusco',
+  'vaccari':'p-vaccari','joao vaccari':'p-vaccari',
+  'bumlai':'p-bumlai','jose carlos bumlai':'p-bumlai',
+  'delgatti':'p-delgatti','walter delgatti':'p-delgatti',
+  // Flávio
+  'flavio':'p-flavio','flávio':'p-flavio','flavio bolsonaro':'p-flavio','flávio bolsonaro':'p-flavio',
+  'queiroz':'p-queiroz','fabricio queiroz':'p-queiroz','fabrício queiroz':'p-queiroz',
+  'adriano':'p-adriano-nobrega','adriano da nobrega':'p-adriano-nobrega','nobrega':'p-adriano-nobrega',
+  'wassef':'p-wassef','frederick wassef':'p-wassef',
+  'michelle':'p-michelle','michelle bolsonaro':'p-michelle',
+  // Jair
+  'jair':'p-jair','jair bolsonaro':'p-jair','bolsonaro':'p-jair',
+  'cid':'p-cid','mauro cid':'p-cid',
+  'moraes':'p-moraes','alexandre de moraes':'p-moraes','alexandre moraes':'p-moraes',
+  'braga netto':'p-braga-netto','braga':'p-braga-netto',
+  'torres':'p-torres','anderson torres':'p-torres',
+  'fux':'p-fux','luiz fux':'p-fux',
+  'dino':'p-dino','flavio dino':'p-dino','flávio dino':'p-dino',
+  'zanin':'p-zanin','cristiano zanin':'p-zanin',
+  'gonet':'p-gonet','paulo gonet':'p-gonet',
+  'trump':'p-trump','donald trump':'p-trump',
+  // Cunha
+  'cunha':'p-cunha','eduardo cunha':'p-cunha',
+  'funaro':'p-funaro','lucio funaro':'p-funaro','lúcio funaro':'p-funaro',
+  'teori':'p-teori','teori zavascki':'p-teori',
+  'bonat':'p-bonat',
+};
+// Ordenado por tamanho decrescente para match "greedy" (nomes longos antes de curtos)
+const ALIAS_KEYS = Object.keys(ALIASES).sort((a,b) => b.length - a.length);
+
+function encontrarPessoa(txtNorm) {
+  for (const k of ALIAS_KEYS) {
+    if (txtNorm.includes(k)) return ALIASES[k];
+  }
+  return null;
+}
+function encontrarDuasPessoas(txtNorm) {
+  const achados = [];
+  let resto = txtNorm;
+  for (const k of ALIAS_KEYS) {
+    if (resto.includes(k) && !achados.includes(ALIASES[k])) {
+      achados.push(ALIASES[k]);
+      resto = resto.replace(k,'');
+      if (achados.length === 2) break;
+    }
+  }
+  return achados.length === 2 ? achados : null;
+}
+
+function nodeMap() {
+  const m = new Map();
+  GRAFO.nodes.forEach(n => m.set(n.id, n));
+  return m;
+}
+function adjacency() {
+  const adj = new Map();
+  GRAFO.nodes.forEach(n => adj.set(n.id, []));
+  GRAFO.edges.forEach(e => {
+    adj.get(e.source).push({to: e.target, edge: e});
+    adj.get(e.target).push({to: e.source, edge: e});
+  });
+  return adj;
+}
+
+// BFS para shortest path não-direcionado
+function shortestPath(srcId, tgtId) {
+  const adj = adjacency();
+  const prev = new Map();
+  const prevEdge = new Map();
+  const queue = [srcId];
+  const visited = new Set([srcId]);
+  while (queue.length) {
+    const curr = queue.shift();
+    if (curr === tgtId) {
+      const path = [curr];
+      const edgePath = [];
+      let x = curr;
+      while (prev.has(x)) {
+        edgePath.unshift(prevEdge.get(x));
+        x = prev.get(x);
+        path.unshift(x);
+      }
+      return {nos: path, arestas: edgePath};
+    }
+    for (const {to, edge} of adj.get(curr) || []) {
+      if (!visited.has(to)) {
+        visited.add(to);
+        prev.set(to, curr);
+        prevEdge.set(to, edge);
+        queue.push(to);
+      }
+    }
+  }
+  return null;
+}
+
+// Vizinhos filtrados por predicado em aresta/nó
+function vizinhosFiltrados(centroId, pred) {
+  const adj = adjacency();
+  const nm = nodeMap();
+  const resultado = [];
+  for (const {to, edge} of adj.get(centroId) || []) {
+    const no = nm.get(to);
+    if (pred(no, edge, centroId)) resultado.push({no, edge});
+  }
+  return resultado;
+}
+
+// =====================================================================
+// Padrões de interpretação. Cada padrão retorna null se não casar,
+// ou { tituloQ, resposta, nos:Set, arestas:Set } se casar.
+// =====================================================================
+
+const PESSOAS_NICE = {
+  'p-lula':'Lula','p-flavio':'Flávio Bolsonaro','p-jair':'Jair Bolsonaro',
+  'p-cunha':'Eduardo Cunha','p-moro':'Moro','p-dallagnol':'Dallagnol',
+};
+function nome(id) {
+  const nm = nodeMap().get(id);
+  return (nm && nm.titulo) || PESSOAS_NICE[id] || id;
+}
+
+function p_caminhoCorrupcao(q) {
+  // "caminho da corrupção de X" / "corrupção X" / "acusações contra X" / "o que acusam X"
+  const m = /(caminho|rastro|historia|história).*(corrup|acus|crime)|corrup|acus(a|ação)|crime/i.test(q);
+  if (!m) return null;
+  const txt = normalize(q);
+  const pid = encontrarPessoa(txt);
+  if (!pid) return null;
+
+  const nm = nodeMap();
+  const adj = adjacency();
+  const nos = new Set([pid]);
+  const arestas = new Set();
+
+  // 1. ALEGAÇÕES que acusam a pessoa (vizinhos de tipo ALEGACAO)
+  const alegacoes = vizinhosFiltrados(pid, (n,e) => n.tipo === 'ALEGACAO');
+  alegacoes.forEach(({no,edge}) => { nos.add(no.id); arestas.add(edge.id); });
+
+  // 2. DECISÕES conectadas (condenações, absolvições, anulações)
+  const decisoes = vizinhosFiltrados(pid, (n,e) => n.tipo === 'DECISAO');
+  decisoes.forEach(({no,edge}) => { nos.add(no.id); arestas.add(edge.id); });
+
+  // 3. FATOS conectados
+  const fatos = vizinhosFiltrados(pid, (n,e) => n.tipo === 'FATO');
+  fatos.forEach(({no,edge}) => { nos.add(no.id); arestas.add(edge.id); });
+
+  // 4. Delatores (pessoas que apontam para alegações que acusam a pessoa)
+  const delatores = new Set();
+  alegacoes.forEach(({no}) => {
+    for (const {to, edge} of adj.get(no.id) || []) {
+      const outro = nm.get(to);
+      if (outro && outro.tipo === 'PESSOA' && to !== pid && edge.tipo === 'delatou') {
+        delatores.add(to);
+        nos.add(to);
+        arestas.add(edge.id);
+      }
+    }
+  });
+
+  // Estatísticas
+  const condenacoes = decisoes.filter(d => d.edge.tipo === 'condenou' && (d.no.status||'ativo')==='ativo');
+  const anuladas = decisoes.filter(d => d.no.status === 'anulado');
+  const arquivadas = decisoes.filter(d => d.no.status === 'arquivado');
+  const defende = decisoes.filter(d => d.edge.tipo === 'defende');
+
+  const pessoa = nm.get(pid);
+  const resposta = `
+    <strong>${pessoa.titulo}</strong>: ${alegacoes.length} alegações, ${decisoes.length} decisões judiciais relacionadas, ${delatores.size} delatores.<br>
+    <strong style="color:#86efac">${condenacoes.length}</strong> condenações <em>vigentes</em> ·
+    <strong style="color:#fca5a5">${anuladas.length}</strong> anuladas ·
+    <strong style="color:#86efac">${arquivadas.length}</strong> arquivadas/absolvições ·
+    <strong style="color:#93c5fd">${defende.length}</strong> favoráveis à defesa.
+  `;
+  return { tituloQ:`caminho da corrupção de <b>${pessoa.titulo}</b>`, resposta, nos, arestas };
+}
+
+function p_conexao(q) {
+  // "conexão entre X e Y" / "caminho de X a Y" / "o que liga X a Y"
+  const m = /(conex[aã]o|caminho|liga|rela[cç][aã]o).*entre|entre.*(e|a) |ligar?/i.test(q) ||
+            /caminho.*(para|a|ate|até)|de .* (a|para|até|ate) /i.test(q);
+  const txt = normalize(q);
+  const dois = encontrarDuasPessoas(txt);
+  if (!dois) return null;
+  const [src, tgt] = dois;
+  const path = shortestPath(src, tgt);
+  if (!path) return null;
+  const nos = new Set(path.nos);
+  const arestas = new Set(path.arestas.map(e => e.id));
+  const nm = nodeMap();
+  const seq = path.nos.map(id => `<code>${nm.get(id).label}</code>`).join(' → ');
+  return {
+    tituloQ: `caminho entre <b>${nm.get(src).titulo}</b> e <b>${nm.get(tgt).titulo}</b>`,
+    resposta: `${path.nos.length - 1} saltos (${path.arestas.length} arestas):<br>${seq}`,
+    nos, arestas
+  };
+}
+
+function p_delatores(q) {
+  if (!/delat|delacao|delação/i.test(q)) return null;
+  const txt = normalize(q);
+  const pid = encontrarPessoa(txt);
+  if (!pid) return null;
+  const nm = nodeMap();
+  const adj = adjacency();
+  const nos = new Set([pid]);
+  const arestas = new Set();
+  const delatores = [];
+
+  // Vizinhos ALEGACAO → quem delatou essa alegação
+  for (const {to, edge} of adj.get(pid) || []) {
+    const no = nm.get(to);
+    if (!no || no.tipo !== 'ALEGACAO') continue;
+    nos.add(no.id); arestas.add(edge.id);
+    for (const {to:t2, edge:e2} of adj.get(no.id) || []) {
+      const outro = nm.get(t2);
+      if (outro && outro.tipo === 'PESSOA' && e2.tipo === 'delatou' && t2 !== pid) {
+        nos.add(t2); arestas.add(e2.id);
+        delatores.push(outro);
+      }
+    }
+  }
+
+  const pessoa = nm.get(pid);
+  if (!delatores.length) {
+    return { tituloQ:`quem delatou <b>${pessoa.titulo}</b>`, resposta:'<strong>Ninguém</strong> delatou diretamente — nenhuma aresta "delatou" chega a esta pessoa no grafo.', nos: new Set([pid]), arestas:new Set() };
+  }
+  const lista = delatores.map(d => `<code>${d.label}</code>`).join(', ');
+  return {
+    tituloQ:`quem delatou <b>${pessoa.titulo}</b>`,
+    resposta: `<strong>${delatores.length}</strong> delatores apontaram para alegações contra ${pessoa.titulo}: ${lista}.`,
+    nos, arestas
+  };
+}
+
+function p_anulados(q) {
+  if (!/anul|nulidade/i.test(q)) return null;
+  const txt = normalize(q);
+  const pid = encontrarPessoa(txt);
+  const nm = nodeMap();
+  const nos = new Set();
+  const arestas = new Set();
+
+  let candidatos;
+  if (pid) {
+    nos.add(pid);
+    // vizinhos com status=anulado
+    for (const {to, edge} of adjacency().get(pid) || []) {
+      const no = nm.get(to);
+      if (no && no.status === 'anulado') { nos.add(to); arestas.add(edge.id); }
+    }
+    // decisões cujo tipo de aresta é 'anulou' — rastrear para trás
+    GRAFO.edges.forEach(e => {
+      if (e.tipo === 'anulou') {
+        const alvo = nm.get(e.target);
+        if (nos.has(e.target) || (alvo && (alvo.alvo === nm.get(pid).alvo))) {
+          nos.add(e.source); nos.add(e.target); arestas.add(e.id);
+        }
+      }
+    });
+    candidatos = [...nos].filter(id => nm.get(id).status === 'anulado').length;
+    const pessoa = nm.get(pid);
+    return { tituloQ:`o que foi anulado contra <b>${pessoa.titulo}</b>`, resposta:`<strong>${candidatos}</strong> nós com status "anulado" relacionados a ${pessoa.titulo}.`, nos, arestas };
+  }
+  // Sem pessoa: tudo anulado
+  GRAFO.nodes.forEach(n => { if (n.status === 'anulado') nos.add(n.id); });
+  GRAFO.edges.forEach(e => { if (e.tipo === 'anulou') { nos.add(e.source); nos.add(e.target); arestas.add(e.id); } });
+  return { tituloQ:'o que foi <b>anulado</b> (geral)', resposta:`<strong>${nos.size}</strong> nós com status "anulado" no grafo inteiro.`, nos, arestas };
+}
+
+function p_arquivados(q) {
+  if (!/arquiv|absolv|prescriç|prescric|trancad/i.test(q)) return null;
+  const txt = normalize(q);
+  const pid = encontrarPessoa(txt);
+  const nos = new Set();
+  const arestas = new Set();
+  const nm = nodeMap();
+
+  const filtro = (n) => n.status === 'arquivado';
+  const nodes = GRAFO.nodes.filter(filtro);
+  if (pid) {
+    nos.add(pid);
+    for (const {to, edge} of adjacency().get(pid) || []) {
+      const no = nm.get(to);
+      if (no && filtro(no)) { nos.add(to); arestas.add(edge.id); }
+    }
+    const pessoa = nm.get(pid);
+    return { tituloQ:`o que foi arquivado/absolvido contra <b>${pessoa.titulo}</b>`, resposta:`<strong>${nos.size - 1}</strong> casos arquivados ou absolvições.`, nos, arestas };
+  }
+  nodes.forEach(n => nos.add(n.id));
+  return { tituloQ:'arquivamentos e absolvições (geral)', resposta:`<strong>${nos.size}</strong> nós com status "arquivado" no grafo.`, nos, arestas };
+}
+
+function p_condenacoes(q) {
+  if (!/condena|transit|trânsit|pena|preso|prisão|prisao/i.test(q)) return null;
+  const txt = normalize(q);
+  const pid = encontrarPessoa(txt);
+  const nm = nodeMap();
+  const nos = new Set();
+  const arestas = new Set();
+
+  if (pid) {
+    nos.add(pid);
+    for (const {to, edge} of adjacency().get(pid) || []) {
+      const no = nm.get(to);
+      if (no && no.tipo === 'DECISAO' && edge.tipo === 'condenou' && (no.status||'ativo') === 'ativo') {
+        nos.add(to); arestas.add(edge.id);
+      }
+    }
+    const pessoa = nm.get(pid);
+    return { tituloQ:`condenações <em>vigentes</em> de <b>${pessoa.titulo}</b>`, resposta:`<strong>${nos.size - 1}</strong> condenação(ões) que NÃO foram anuladas.`, nos, arestas };
+  }
+  // Geral: todas condenações vigentes
+  GRAFO.edges.forEach(e => {
+    if (e.tipo === 'condenou') {
+      const alvo = nm.get(e.target);
+      const dec = nm.get(e.source);
+      if (dec && (dec.status||'ativo') === 'ativo') {
+        nos.add(e.source); nos.add(e.target); arestas.add(e.id);
+      }
+    }
+  });
+  return { tituloQ:'condenações vigentes (geral)', resposta:`<strong>${nos.size}</strong> nós em condenações que transitaram em julgado ou ainda estão ativas.`, nos, arestas };
+}
+
+function p_narrativas(q) {
+  if (!/narrativ|imprensa|midia|mídia|cobertura/i.test(q)) return null;
+  const txt = normalize(q);
+  const pid = encontrarPessoa(txt);
+  const nm = nodeMap();
+  const nos = new Set();
+  const arestas = new Set();
+
+  if (pid) {
+    const alvoAlvo = nm.get(pid).alvo;
+    GRAFO.nodes.forEach(n => {
+      if (n.tipo === 'NARRATIVA' && (n.alvo === alvoAlvo || n.alvo === 'geral')) {
+        nos.add(n.id);
+      }
+    });
+    nos.add(pid);
+    const pessoa = nm.get(pid);
+    return { tituloQ:`narrativas sobre <b>${pessoa.titulo}</b>`, resposta:`<strong>${nos.size - 1}</strong> enquadramentos de imprensa/livros/documentários rotulados por fonte.`, nos, arestas };
+  }
+  GRAFO.nodes.forEach(n => { if (n.tipo === 'NARRATIVA') nos.add(n.id); });
+  return { tituloQ:'todas as narrativas', resposta:`<strong>${nos.size}</strong> narrativas no grafo (cada uma rotulada pela fonte).`, nos, arestas };
+}
+
+function p_contradicoes(q) {
+  if (!/contradi|contradição|contradicao|conflit|divergenc|divergência|mentira|mentiu/i.test(q)) return null;
+  const nos = new Set();
+  const arestas = new Set();
+  GRAFO.edges.forEach(e => {
+    if (e.tipo === 'contradiz') {
+      nos.add(e.source); nos.add(e.target); arestas.add(e.id);
+    }
+  });
+  return { tituloQ:'contradições no grafo', resposta:`<strong>${arestas.size}</strong> arestas de contradição conectando ${nos.size} nós — versões conflitantes sobre os mesmos fatos.`, nos, arestas };
+}
+
+function p_tempo(q) {
+  // "em 2016" / "entre 2018 e 2022" / "antes de 2020"
+  const matchEntre = q.match(/entre\s+(\d{4})\s+e\s+(\d{4})/i);
+  const matchAno = q.match(/\b(em|no ano|do ano)?\s*(\d{4})\b/i);
+  const matchAntes = q.match(/antes de\s+(\d{4})/i);
+  const matchDepois = q.match(/depois de\s+(\d{4})/i);
+  let anoMin=null, anoMax=null, titulo='';
+  if (matchEntre) { anoMin=+matchEntre[1]; anoMax=+matchEntre[2]; titulo=`entre ${anoMin} e ${anoMax}`; }
+  else if (matchAntes) { anoMax=+matchAntes[1]-1; titulo=`antes de ${matchAntes[1]}`; }
+  else if (matchDepois) { anoMin=+matchDepois[1]+1; titulo=`depois de ${matchDepois[1]}`; }
+  else if (matchAno && /aconteceu|ocorreu|em\s+\d{4}|do ano/i.test(q)) {
+    anoMin=anoMax=+matchAno[2]; titulo=`em ${anoMin}`;
+  } else return null;
+
+  const nos = new Set();
+  GRAFO.nodes.forEach(n => {
+    if (!n.data) return;
+    const y = parseInt(n.data.substring(0,4));
+    if ((anoMin===null || y >= anoMin) && (anoMax===null || y <= anoMax)) {
+      nos.add(n.id);
+    }
+  });
+  return { tituloQ:`eventos ${titulo}`, resposta:`<strong>${nos.size}</strong> eventos datados no período.`, nos, arestas:new Set() };
+}
+
+function p_livre(q) {
+  // Fallback: busca textual em qualquer campo
+  const qn = normalize(q);
+  if (!qn) return null;
+  const termos = qn.split(' ').filter(t => t.length >= 3);
+  if (!termos.length) return null;
+  const nos = new Set();
+  GRAFO.nodes.forEach(n => {
+    const haystack = normalize([n.label, n.titulo, n.descricao, n.caso].filter(Boolean).join(' '));
+    if (termos.every(t => haystack.includes(t))) nos.add(n.id);
+  });
+  if (!nos.size) return null;
+  return { tituloQ:`busca livre: "${q}"`, resposta:`<strong>${nos.size}</strong> nós contêm os termos buscados.`, nos, arestas:new Set() };
+}
+
+const PADROES = [p_caminhoCorrupcao, p_conexao, p_delatores, p_anulados, p_arquivados, p_condenacoes, p_narrativas, p_contradicoes, p_tempo, p_livre];
+
+function interpretar(q) {
+  for (const p of PADROES) {
+    try { const r = p(q); if (r) return r; } catch(e) { console.warn('padrão falhou:', e); }
+  }
+  return null;
+}
+
+function runSearch(q) {
+  const ap = document.getElementById('answer-panel');
+  if (!q || !q.trim()) {
+    cy.elements().removeClass('highlighted faded search-match');
+    ap.classList.remove('show'); ap.innerHTML='';
+    updateStats();
+    return;
+  }
+  const r = interpretar(q);
+  if (!r) {
+    ap.classList.add('show');
+    ap.innerHTML = `<div class="q"><b>${escapeHtml(q)}</b></div><div class="a">Nada encontrado. Clique <b>?</b> para ver exemplos.</div>`;
+    cy.elements().removeClass('highlighted faded search-match');
+    return;
+  }
+  ap.classList.add('show');
+  ap.innerHTML = `<div class="q">${r.tituloQ}</div><div class="a">${r.resposta}</div>`;
+
+  // Aplica no grafo: nós relevantes highlighted; resto faded
+  cy.elements().removeClass('highlighted faded search-match');
+  const matchNodes = cy.collection();
+  r.nos.forEach(id => { const n = cy.getElementById(id); if (n && n.length) matchNodes.merge(n); });
+  const matchEdges = cy.collection();
+  r.arestas.forEach(id => { const e = cy.getElementById(id); if (e && e.length) matchEdges.merge(e); });
+
+  if (matchNodes.length) {
+    cy.elements().addClass('faded');
+    matchNodes.removeClass('faded').addClass('highlighted search-match');
+    matchEdges.removeClass('faded').addClass('highlighted');
+    cy.animate({fit: {eles: matchNodes, padding: 60}}, {duration: 500});
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// =====================================================================
+// Setup inicial
+// =====================================================================
+function populateAlvoFilters() {
+  const alvos = new Map();
+  GRAFO.nodes.forEach(n => {
+    const a = n.alvo || 'geral';
+    alvos.set(a, (alvos.get(a) || 0) + 1);
+  });
+  const container = document.getElementById('alvo-filters');
+  const labelMap = {
+    'lula':   'Lula (PT)',
+    'flavio': 'Flávio Bolsonaro (PL)',
+    'jair':   'Jair Bolsonaro (PL)',
+    'cunha':  'Eduardo Cunha (ex-MDB)',
+    'geral':  'Transversal (sem alvo)',
+  };
+  const corMap = {
+    'lula':   '#dc2626',
+    'flavio': '#eab308',
+    'jair':   '#eab308',
+    'cunha':  '#06b6d4',
+    'geral':  '#64748b',
+  };
+  // Ordem fixa (não alfabética)
+  const ordem = ['lula','flavio','jair','cunha','geral'];
+  const ordenados = [...alvos.entries()].sort((a,b) => ordem.indexOf(a[0]) - ordem.indexOf(b[0]));
+  for (const [a, n] of ordenados) {
+    filtros.alvo.add(a);
+    const label = labelMap[a] || a;
+    const cor = corMap[a] || '#64748b';
+    container.insertAdjacentHTML('beforeend', `
+      <label class="filter-item">
+        <input type="checkbox" data-filter="alvo" value="${a}" checked>
+        <span class="color-dot" style="background:${cor}"></span>
+        <span>${label}</span>
+        <span class="count">${n}</span>
+      </label>
+    `);
+  }
+}
+
+function populateCasoFilters() {
+  const casos = new Map();
+  GRAFO.nodes.forEach(n => {
+    const c = n.caso || 'geral';
+    casos.set(c, (casos.get(c) || 0) + 1);
+  });
+  const container = document.getElementById('caso-filters');
+  const labelMap = {
+    'triplex': 'Triplex do Guarujá',
+    'atibaia': 'Sítio de Atibaia',
+    'instituto': 'Instituto Lula',
+    'palestras': 'Palestras',
+    'stf': 'STF / anulações',
+    'delacoes': 'Delações',
+    'vazajato': 'Vaza Jato',
+    'lavajato': 'Lava Jato (operação)',
+    'contexto': 'Contexto político',
+    'narrativa': 'Narrativas midiáticas',
+    'rachadinhas': 'Rachadinhas (Flávio)',
+    'queiroz': 'Fabrício Queiroz',
+    'joias': 'Joias sauditas',
+    'vacinas': 'Cartões de vacinação',
+    'golpe-8jan': '8 de janeiro / golpe',
+    'milicias-digitais': 'Milícias digitais',
+    'inelegibilidade': 'Inelegibilidade (TSE)',
+    'cunha-lavajato': 'Cunha / Lava Jato',
+    'cunha-impeachment': 'Cunha / impeachment Dilma',
+    'cunha-fifa': 'Operação Sépsis / Caixa',
+    'geral': 'Geral',
+  };
+  for (const [c, n] of casos) {
+    filtros.caso.add(c);
+    const label = labelMap[c] || c;
+    container.insertAdjacentHTML('beforeend', `
+      <label class="filter-item">
+        <input type="checkbox" data-filter="caso" value="${c}" checked>
+        <span>${label}</span>
+        <span class="count">${n}</span>
+      </label>
+    `);
+  }
+}
+
+function updateCounts() {
+  Object.keys(COR_TIPO).forEach(tipo => {
+    const n = GRAFO.nodes.filter(x => x.tipo === tipo).length;
+    const el = document.querySelector(`[data-count="${tipo}"]`);
+    if (el) el.textContent = n;
+  });
+}
+
+function wireFilters() {
+  document.querySelectorAll('input[data-filter]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const f = cb.dataset.filter;
+      if (cb.checked) filtros[f].add(cb.value);
+      else filtros[f].delete(cb.value);
+      applyFilters();
+    });
+  });
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.addEventListener('click', () => setMode(b.dataset.mode));
+  });
+  document.getElementById('timeline').addEventListener('input', e => {
+    filtros.ano = parseInt(e.target.value);
+    document.getElementById('year-label').textContent =
+      filtros.ano >= 2026 ? `todos os eventos (até ${filtros.ano})` : `até ${filtros.ano}`;
+    applyFilters();
+  });
+  document.getElementById('reset-timeline').addEventListener('click', () => {
+    document.getElementById('timeline').value = 2026;
+    filtros.ano = 2026;
+    document.getElementById('year-label').textContent = 'todos os eventos (até 2026)';
+    applyFilters();
+  });
+  // Debounce + Enter para disparar busca inteligente
+  const searchEl = document.getElementById('search');
+  const searchWrap = document.getElementById('search-wrap');
+  const clearBtn = document.getElementById('search-clear');
+  let searchTimer;
+  searchEl.addEventListener('input', e => {
+    searchWrap.classList.toggle('has-value', !!e.target.value);
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => runSearch(e.target.value), 300);
+  });
+  searchEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { clearTimeout(searchTimer); runSearch(e.target.value); }
+    if (e.key === 'Escape') { searchEl.value=''; searchWrap.classList.remove('has-value'); runSearch(''); }
+  });
+  clearBtn.addEventListener('click', () => {
+    searchEl.value = ''; searchWrap.classList.remove('has-value'); runSearch('');
+  });
+
+  // Modal de exemplos
+  document.getElementById('help-btn').addEventListener('click', () => {
+    document.getElementById('help-modal').classList.add('show');
+  });
+  document.getElementById('help-modal').addEventListener('click', e => {
+    if (e.target.id === 'help-modal') e.currentTarget.classList.remove('show');
+    const ex = e.target.closest('.ex');
+    if (ex) {
+      const q = ex.dataset.q;
+      searchEl.value = q;
+      searchWrap.classList.add('has-value');
+      document.getElementById('help-modal').classList.remove('show');
+      runSearch(q);
+    }
+  });
+  document.getElementById('export-btn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(GRAFO, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'grafo-didatico.json'; a.click();
+    URL.revokeObjectURL(url);
+  });
+  document.getElementById('fit-btn').addEventListener('click', () => {
+    cy.animate({fit: {padding: 40}}, {duration: 400});
+  });
+}
+
+// =====================================================================
+// Boot
+// =====================================================================
+document.addEventListener('DOMContentLoaded', () => {
+  populateAlvoFilters();
+  populateCasoFilters();
+  updateCounts();
+  initCy();
+  wireFilters();
+  updateStats();
+});
+</script>
+</body>
+</html>

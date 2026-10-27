@@ -15,8 +15,8 @@ decisão institucional — sem tomar partido político.
 node validate.js
 
 # Abrir
-open grafo.html   # macOS
-xdg-open grafo.html  # Linux
+open index.html   # macOS
+xdg-open index.html  # Linux
 ```
 
 Standalone — não requer servidor nem build step. Dependências via CDN com SRI.
@@ -24,7 +24,7 @@ Standalone — não requer servidor nem build step. Dependências via CDN com SR
 ## Arquitetura
 
 ```
-grafo.html      Interface Cytoscape.js + Dagre, busca investigativa,
+index.html      Interface Cytoscape.js + Dagre, busca investigativa,
                 filtros, timeline, painel de detalhes. ~900 LOC.
 dados.js        Fonte única da verdade do grafo. Dois arrays:
                 nodes[] (187) e edges[] (251).
@@ -140,7 +140,7 @@ Rode `node validate.js` para checar.
 
 ### Padrões de busca
 
-Novos padrões ficam em `grafo.html`, dentro do bloco "BUSCA INVESTIGATIVA".
+Novos padrões ficam em `index.html`, dentro do bloco "BUSCA INVESTIGATIVA".
 Cada padrão é uma função que recebe a query normalizada e retorna
 `{tituloQ, resposta, nos:Set, arestas:Set}` ou `null`.
 
@@ -154,7 +154,7 @@ balanceada.
 
 ## Licença
 
-O código (grafo.html, dados.js, validate.js) é fornecido sob licença MIT.
+O código (index.html, dados.js, validate.js) é fornecido sob licença MIT.
 O conteúdo factual é compilação de fontes públicas; cada afirmação deve ser
 atribuída à sua fonte primária quando citada.
 

@@ -1638,27 +1638,56 @@ function populateAlvoFilters() {
   });
   const container = document.getElementById('alvo-filters');
   const labelMap = {
-    'lula':   'Lula (PT)',
-    'dirceu': 'José Dirceu (PT)',
-    'flavio': 'Flávio Bolsonaro (PL)',
-    'jair':   'Jair Bolsonaro (PL)',
-    'cunha':  'Eduardo Cunha (ex-MDB)',
-    'temer':  'Michel Temer (MDB)',
-    'aecio':  'Aécio Neves (PSDB)',
-    'geral':  'Transversal (sem alvo)',
+    'lula':     'Lula (PT)',
+    'dirceu':   'José Dirceu (PT)',
+    'flavio':   'Flávio Bolsonaro (PL)',
+    'jair':     'Jair Bolsonaro (PL)',
+    'zambelli': 'Carla Zambelli (PL)',
+    'silveira': 'Daniel Silveira (ex-PTB)',
+    'cunha':    'Eduardo Cunha (ex-MDB)',
+    'temer':    'Michel Temer (MDB)',
+    'aecio':    'Aécio Neves (PSDB)',
+    'cabral':   'Sérgio Cabral (MDB)',
+    'garotinho':'Anthony Garotinho (ex-PT/PDT)',
+    'renan':    'Renan Calheiros (MDB)',
+    'juca':     'Romero Jucá (MDB)',
+    'geddel':   'Geddel Vieira Lima (MDB)',
+    'arruda':   'José R. Arruda (ex-DEM)',
+    'collor':   'Fernando Collor (ex-PTB)',
+    'richa':    'Beto Richa (PSDB)',
+    'geral':    'Transversal (sem alvo)',
   };
   const corMap = {
-    'lula':   '#dc2626',
-    'dirceu': '#be123c',
-    'flavio': '#eab308',
-    'jair':   '#eab308',
-    'cunha':  '#06b6d4',
-    'temer':  '#0891b2',
-    'aecio':  '#a78bfa',
-    'geral':  '#64748b',
+    'lula':     '#dc2626',
+    'dirceu':   '#be123c',
+    'flavio':   '#eab308',
+    'jair':     '#eab308',
+    'zambelli': '#f97316',
+    'silveira': '#f97316',
+    'cunha':    '#06b6d4',
+    'temer':    '#0891b2',
+    'aecio':    '#a78bfa',
+    'cabral':   '#14b8a6',
+    'garotinho':'#2dd4bf',
+    'renan':    '#38bdf8',
+    'juca':     '#38bdf8',
+    'geddel':   '#38bdf8',
+    'arruda':   '#8b5cf6',
+    'collor':   '#f472b6',
+    'richa':    '#c084fc',
+    'geral':    '#64748b',
   };
-  // Ordem fixa (não alfabética)
-  const ordem = ['lula','dirceu','jair','flavio','temer','cunha','aecio','geral'];
+  // Ordem fixa (não alfabética) — presidentes, depois ex-presidentes/vices, depois governadores, depois congressistas
+  const ordem = [
+    'lula','dirceu',                       // PT
+    'jair','flavio','zambelli','silveira', // Bolsonarismo
+    'temer','cunha','renan','juca','geddel',// MDB
+    'aecio','richa',                       // PSDB
+    'arruda',                              // DEM
+    'collor',                              // ex-presidente histórico
+    'cabral','garotinho',                  // Governadores RJ
+    'geral'
+  ];
   const ordenados = [...alvos.entries()].sort((a,b) => ordem.indexOf(a[0]) - ordem.indexOf(b[0]));
   for (const [a, n] of ordenados) {
     filtros.alvo.add(a);
@@ -1705,6 +1734,16 @@ function populateCasoFilters() {
     'cunha-lavajato': 'Cunha / Lava Jato',
     'cunha-impeachment': 'Cunha / impeachment Dilma',
     'cunha-fifa': 'Operação Sépsis / Caixa',
+    'cabral-rj': 'Esquema RJ (Cabral)',
+    'garotinho-rj': 'Esquema RJ (Garotinho)',
+    'zambelli': 'Zambelli (arma + CNJ)',
+    'silveira': 'Silveira (ataques STF)',
+    'collor': 'Collor (2 ciclos)',
+    'renan': 'Renan (longevidade)',
+    'juca': 'Jucá ("estancar sangria")',
+    'geddel': 'Geddel (R$ 51 mi)',
+    'arruda': 'Arruda (Mensalão DEM)',
+    'richa': 'Richa (Lava Jato PR)',
     'geral': 'Geral',
   };
   // Agrupa casos por alvo predominante (ou "transversais" se misto)
